@@ -1,0 +1,648 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 23</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 23 - Совершать ошибки это ожидаемо; Восстановление, 
+Божественно</h1> 
+
+<P>
+В этой главе вы узнаете, как создать свои собственные механизмы обнаружения ошибок, 
+отчетности и восстановления. Хорошая стратегия обработки ошибок может дать вашей 
+программе возможность изящно обрабатывать как ожидаемые, так и непредвиденные 
+ошибки без сбоев или потери критических данных.
+
+<h2>Сообщите о своих ошибках и впечатлите своих пользователей</h2>
+
+<p>
+Одним из наиболее распространенных недостатков компьютерных программ 
+является неспособность сообщать о сбоях осмысленным образом. Если 
+какой-то ввод выходит за пределы ожидаемого диапазона, или если 
+вычисление превышает возможности программы, или если не удается установить 
+связь с каким-то внешним устройством, плохо написанная программа просто 
+"перевернется и умрет" с загадочным сообщением об ошибке, связанным со 
+скрытыми деталями реализации программы. В теории приятно иметь возможность 
+создавать программы без ограничений; динамическая природа Lisp, безусловно, 
+допускает эту практику.
+
+<p>
+Но почти в каждой нетривиальной программе всегда будет возникать некая 
+фатальная ситуация, которую программист может предвидеть, но не решит 
+сама программа. Именно для этих ситуаций Lisp предоставляет функцию <code>ERROR</code>.
+<code>ERROR</code> ожидает строку формата и аргументы. (Мы кратко рассмотрели <code>FORMAT</code>
+в <a href="chapter04.html">Главе 4</a> и подробно рассмотрим его в
+<a href="chapter24.html">Главе 24</a>.) <code>ERROR</code> дает программе стандартный 
+способ объявить о фатальной ошибке. Вы просто составляете соответствующее сообщение, 
+используя строку формата и (необязательные) аргументы, а об остальном заботится <code>ERROR</code>.
+
+<pre>
+? (defun divide (numerator denominator)
+    (when (zerop denominator)
+      (error "Sorry, you can't divide by zero."))
+    (/ numerator denominator))
+DIVIDE
+? (divide 4 3)
+4/3
+? (divide 1 0)
+Error: Sorry, you can't divide by zero.
+</pre> 
+
+<p>
+Ваша программа никогда не возвращается из вызова <code>ERROR</code>. 
+Вместо этого будет произведен вход в отладчик Lisp. У вас будет возможность 
+изучить причину ошибки, находясь в отладчике, но вы не сможете возобновить 
+выполнение своей программы. Это делает <code>ERROR</code> довольно экстремальным 
+ответом на проблему, обнаруженную вашей программой. Позже мы увидим, как сообщать 
+о проблемах <em>и</em> дать пользователю возможность исправить проблему. 
+Мы даже увидим, как ошибки могут быть обработаны автоматически.
+
+<h2>Классифицируйте ошибки, используя условия(Conditions)</h2>
+
+<blockquote> 
+Примечание: Если у вас действительно старая система Lisp, она может 
+не включать в себя реализацию условий. Если это так, то этот раздел 
+и следующий могут быть не очень полезны для вас, за исключением того, 
+чтобы указать, чего не хватает вашей системе Lisp по сравнению с 
+текущим стандартом.
+</blockquote> 
+
+<p>
+Ошибка - это просто условие, которое требует некоторого исправления, прежде 
+чем ваша программа cможет продолжить работу. Ошибка может быть исправлена с 
+помощью взаимодействия пользователя программы с отладчиком или с помощью 
+вмешательства обработчика/handler (как мы увидим далее в этой главе) ошибок.
+
+<p>
+Условие(condition) - это просто какое-то исключительное событие, которое 
+происходит в вашей программе. Это событие может быть вызвано ошибкой или 
+чем-то интересным, что происходит во время выполнения вашей программы. 
+Например, программа, которая записывает записи в файл журнала на диске, 
+может вызвать процедуру, которая обрабатывает форматирование и запись записей. 
+Процедура ведения журнала может периодически проверять объем свободного места 
+на диске и сигнализировать о том, что диск заполнен на девяносто процентов. 
+Это не ошибка, потому что регистратор не выйдет из строя при этом условии. 
+Если ваша программа игнорирует сообщение "почти заполнен"  от регистратора, 
+ничего плохого не произойдет. Однако ваша программа может захотеть сделать 
+что-то полезное с информацией о доступном дисковом пространстве, например, 
+архивировать журнал на другое устройство или сообщить пользователю, что в 
+ближайшее время могут потребоваться некоторые корректирующие действия.
+
+<p>
+Теперь мы знаем разницу между условиями(conditions) и ошибками(errors). 
+А пока мы сосредоточим наше внимание на инструментах, которые предоставляет 
+Lisp для обработки ошибок. Позже мы рассмотрим, как ваша программа может 
+сигнализировать и обрабатывать условия.
+
+<p>
+Вы можете сообщить об ошибках, используя строки формата, как описано выше. 
+Но ради согласованности и ремонтопригодности вы, вероятно, захотите создать 
+различные классификации ошибок. Таким образом, вы можете изменять представление 
+целого класса ошибок без поиска в программном коде, чтобы изменить все строки 
+аналогичного формата.
+
+<p> 
+Условие(<code>condition</code>) представляет собой некоторую 
+исключительную ситуацию(<em>exceptional situation</em>), которая 
+возникает во время выполнения вашей программы. Ошибка - это своего 
+рода условие, но не все условия являются ошибками. В следующем разделе 
+это различие будет рассмотрено более подробно.
+
+
+<p>
+Вы можете использовать <code>DEFINE-CONDITION</code> для создания иерархий 
+типов для условий почти так же, как вы используете <code>DEFCLASS</code> для 
+создания иерархий типов для данных вашей программы.
+
+<pre>
+? (define-condition whats-wrong (error)
+                    ((what :initarg :what :initform "something" :reader what))
+    (:report (lambda (condition stream)
+               (format stream "Foo! ~@(~A~) is wrong."
+                       (what condition))))
+    (:documentation "Tell the user that something is wrong."))
+WHATS-WRONG
+? (define-condition whats-wrong-and-why (whats-wrong)
+                    ((why :initarg :why :initform "no clue" :reader why))
+    (:report (lambda (condition stream)
+               (format stream "Uh oh! ~@(~A~) is wrong. Why? ~@(~A~)."
+                       (what condition)
+                       (why condition)))))
+WHATS-WRONG-AND-WHY
+? (error 'whats-wrong-and-why)
+Error: Uh oh! Something is wrong. Why? No clue.
+? (error 'whats-wrong-and-why 
+         :what "the phase variance" 
+         :why "insufficient tachyon flux")
+Error: Uh oh! The phase variance is wrong. Why? Insufficient tachyon flux.
+? (define-condition whats-wrong-is-unfathomable (whats-wrong-and-why)
+                    ()
+    (:report (lambda (condition stream)
+               (format stream "Gack! ~@(~A~) is wrong for some inexplicable reason."
+                       (what condition)))))
+WHATS-WRONG-IS-UNFATHOMABLE
+? (error 'whats-wrong-is-unfathomable)
+Error: Gack! Something is wrong for some inexplicable reason.
+</pre> 
+
+<p>
+Как вы можете видеть, условия имеют родителей, слоты и параметры/опции, как и классы. 
+Параметр <code>:REPORT</code> используется для создания текстового представления условия. 
+Параметр <code>:DOCUMENTATION</code> предназначен для программиста; вы можете получить 
+документацию по условию с помощью <code>(DOCUMENTATION '<em>condition-name</em> 'type)</code>.
+
+<blockquote> 
+ANSI Common Lisp также допускает параметр <code>:DEFAULT-INITARGS</code>. 
+Некоторые системы Lisp все еще основывают свою реализацию условий на описании, 
+найденном в книге Гая Стила "Common Lisp: The Language, 2nd Edition" 
+(<a href="chapter33.html#cltl2">CLtL2</a>); 
+эти реализации не имеют опции <code>:DEFAULT-INITARGS</code>. 
+</blockquote> 
+
+<a name="condition-designator"></a> 
+<p>
+Если вы сравнили вызовы <code>ERROR</code> в этом разделе с вызовами 
+в предыдущем разделе, вы, вероятно, задаетесь вопросом, как строка и 
+символ могут обозначать условие. Если вы передаете символ <code>ERROR</code>, 
+он создает условие с помощью <code>MAKE-CONDITION</code> (аналогично 
+<code>MAKE-INSTANCE</code> для объектов CLOS); символ обозначает тип условия, 
+а аргументы используются для инициализации условия. Если вы передаете строку 
+формата в <code>ERROR</code>, то строка формата и ее аргументы становятся 
+параметрами инициализации для построения условия типа <code>SIMPLE-ERROR</code>. 
+
+<p>Конечно, вы также можете передать экземпляр объекта условия(condition) в 
+<code>ERROR</code>:
+
+<pre>
+? (let ((my-condition (make-condition 'simple-error
+                                    :format-control "Can't do ~A."
+                                    :format-arguments '(undefined-operation))))
+  (error my-condition))
+Error: Can't do UNDEFINED-OPERATION.
+</pre> 
+
+<blockquote>
+Системы Lisp, разработанные в соответствии с <a href="chapter33.html#cltl2">CLtL2</a>, 
+будут использовать <code>:FORMAT-STRING</code> вместо <code>:FORMAT-CONTROL</code>.
+</blockquote> 
+
+<h2>Восстановление из условий(Conditions) с помощью перезагрузки(Restarts)</h2>
+
+<p>
+В этом заключительном разделе мы увидим, как восстанавливаться из ошибок. 
+Самые простые формы предполагают использование <code>CERROR</code> 
+или <code>ASSERT</code>.
+
+<pre>
+? (progn (cerror "Go ahead, make my day."
+                 "Do you feel lucky?")
+         "Just kidding")
+Error: Do you feel lucky?
+Restart options:
+  1: Go ahead, make my day.
+  2. Top level
+</pre> 
+
+<blockquote>
+Список "параметры перезапуска/Restart options", показанный в этом и следующих 
+примерах, является типичным, но не стандартным. Различные системы Lisp будут 
+представлять информацию о перезапуске по-своему и могут добавлять другие 
+встроенные параметры.
+</blockquote> 
+
+<p>
+<code>CERROR</code> имеет два обязательных аргумента. Первый аргумент - 
+это строка управления форматом, которую вы будете использовать, чтобы 
+сообщить пользователю программы, что произойдет при продолжении(<code>continuing</code>) 
+работы с ошибкой. 
+Второй аргумент - это обозначение условия (строка управления форматом, символ, 
+который именует условие или объект условия -- <a href="#condition-designator">см. выше</a>), 
+используемый для сообщения пользователю программы об ошибке.
+
+<p>
+Остальные аргументы <code>CERROR</code>, когда они присутствуют, 
+используются управляющими строками формата и - когда второй аргумент 
+является символом, который именует тип условия - в качестве аргумента 
+ключевого слова в <code>MAKE-CONDITION</code> для этого типа. В любом 
+случае вы должны построить управляющие строки формата так, чтобы они 
+обращались к соответствующим аргументам. Директива <code>FORMAT</code> 
+<code>~</code><i>n</i><code>*</code> может использоваться для пропуска 
+<i>n</i> аргументов (<i>n</i> равно 1, по умолчанию).
+
+<pre>
+? (defun expect-type (object type default-value)
+    (if (typep object type)
+      object
+      (progn
+        (cerror "Substitute the default value ~2*~S."
+                "~S is not of the expected type ~S."
+                object type default-value)
+        default-value)))
+EXPECT-TYPE
+? (expect-type "Nifty" 'string "Bear")
+"Nifty"
+? (expect-type 7 'string "Bear")
+Error: 7 is not of the expected type STRING.
+Restart options:
+  1: Substitute the default value "Bear".
+  2. Top level
+  ? 1
+"Bear"
+</pre> 
+
+<p>
+Обратите внимание, что первая строка управления format использует 
+только третий аргумент format: <code>DEFAULT-VALUE</code>. Он пропускает 
+первые два аргумента format с директивой <code>~2*</code>. Вы делаете то же 
+самое, если аргументы являются инициализирующими аргументами ключевыми словами, 
+когда вы предоставляете символ в качестве второго аргумента для <code>CERROR</code>;
+единственная разница заключается в том, что вам нужно подсчитать ключевые слова 
+и значения, когда вы решаете, сколько аргументов пропустить. Вот предыдущий пример,
+написанный с обозначением для условия типа <code>EXPECT-TYPE-ERROR</code> вместо 
+строки управления форматом. Обратите внимание, как мы пропускаем пять аргументов, 
+чтобы получить <code>DEFAULT-VALUE</code>. Обратите также внимание на использование 
+<code>:ALLOW-OTHER-KEYS T</code>, который позволяет нам добавить аргумент 
+ключевое слово <code>:IGNORE DEFAULT-VALUE</code>, который не ожидался в 
+качестве аргумента инициализации для условия <code>EXPECT-TYPE-ERROR</code>; без 
+него мы получим ошибку для неожиданного аргумента ключевого слова.
+
+<pre>
+? (define-condition expect-type-error (error)
+                    ((object :initarg :object :reader object)
+                     (type :initarg :type :reader type))
+    (:report (lambda (condition stream)
+               (format stream "~S is not of the expected type ~S."
+                       (object condition)
+                       (type condition)))))
+EXPECT-TYPE-ERROR
+? (defun expect-type (object type default-value)
+    (if (typep object type)
+      object
+      (progn
+        (cerror "Substitute the default value ~5*~S."
+                'expect-type-error
+                :object object
+                :type type
+                :ignore default-value
+                :allow-other-keys t)
+        default-value)))
+EXPECT-TYPE
+? (expect-type "Nifty" 'string "Bear")
+"Nifty"
+? (expect-type 7 'string "Bear")
+Error: 7 is not of the expected type STRING.
+Restart options:
+  1: Substitute the default value "Bear".
+  2. Top level
+  ? 1
+"Bear"
+</pre> 
+
+<!-- assert --> 
+
+<a name="assert"></a> 
+
+<p>
+<code>ASSERT</code> идеально подходит для тех ситуаций, когда 
+состояние вашей программы должно пройти некоторый тест -- 
+утверждение/<em>assertion</em>. В своей простейшей форме 
+ <code>ASSERT</code> делает только это.
+
+<pre>
+? (defun my-divide (numerator denominator)
+    (assert (not (zerop denominator)))
+    (/ numerator denominator))
+MY-DIVIDE
+? (my-divide 3 0)
+Error: Failed assertion (NOT (ZEROP DENOMINATOR))
+Restart options:
+  1. Retry the assertion
+  2. Top level
+</pre> 
+
+<p>
+Этот отчет верен,но не особенно полезен; ваша программа сигнализировала 
+бы об <code>DIVISION-BY-ZERO</code>(ошибке деления на ноль) и без 
+<code>ASSERT</code>.  Что <em>было бы</em> полезно, так это возможность 
+исправить  нарушающее значение -- в данном случае нулевой знаменатель - 
+и продолжить работу из error. Необязательный второй аргумент <code>ASSERT</code>  
+позволяет вам перечислить места, значения которых вы, возможно, захотите 
+изменить, чтобы исправить проблему.
+
+<pre>
+? (defun my-divide (numerator denominator)
+    (assert (not (zerop denominator)) (numerator denominator))
+    (/ numerator denominator))
+MY-DIVIDE
+? (my-divide 3 0)
+Error: Failed assertion (NOT (ZEROP DENOMINATOR))
+Restart options:
+  1. Change the values of some places, then retry the assertion
+  2. Top level
+  ? 1
+  Value for NUMERATOR: 3
+  Value for DENOMINATOR 0.5
+6.0
+</pre> 
+
+<p>
+Конечно, выбор значений для установки зависит от вас. Я использовал как 
+<code>NUMERATOR</code>(числитель), так и <code>DENOMINATOR</code>(знаменатель)
+в этом примере, чтобы подчеркнуть тот факт, что список мест не обязательно 
+должен быть просто переменными, проверяемыми в утверждении. (Однако хотя бы 
+<code>одно</code> из этих мест должно повлиять на результат утверждения.)
+
+<p>
+Последнее уточнение для <code>ASSERT</code> позволяет указать собственное сообщение,
+которое будет использоваться в случае сбоя утверждения. По умолчанию <code>ASSERT</code>
+может отображать тестовую форму, но это не обязательно. Указав обозначитель условия 
+и аргументы, следующие за списком мест, вы можете быть уверены, что знаете, какое 
+сообщение будет напечатано при сбое утверждения
+
+<pre>
+? (defun my-divide (numerator denominator)
+    (assert (not (zerop denominator)) (numerator denominator)
+            "You can't divide ~D by ~D." numerator denominator)
+    (/ numerator denominator))
+MY-DIVIDE
+? (my-divide 3 0)
+Error: You can't divide 3 by 0.
+Restart options:
+  1. Change the values of some places, then retry the assertion
+  2. Top level
+  ? 1
+  Value for NUMERATOR: 3
+  Value for DENOMINATOR 2
+3/2
+</pre> 
+
+<!-- handler-bind w/ signal to handle exceptions --> 
+
+<p>
+Вы можете использовать <code>HANDLER-BIND</code> и <code>SIGNAL</code> 
+для обработки исключений в вашей программе. Вот расширенный пример, основанный 
+на более раннем описании в этой главе того, как программа может использовать 
+условия для получения отчета о доступности дискового пространства.
+
+<pre>
+? (define-condition high-disk-utilization ()
+                    ((disk-name :initarg :disk-name :reader disk-name)
+                     (current :initarg :current :reader current-utilization)
+                     (threshold :initarg :threshold :reader threshold))
+    (:report (lambda (condition stream)
+               (format stream "Disk ~A is ~D% full; threshold is ~D%."
+                       (disk-name condition)
+                       (current-utilization condition)
+                       (threshold condition)))))
+HIGH-DISK-UTILIZATION
+? (defun get-disk-utilization (disk-name)
+    <i>;; for this example, we'll just return a fixed value</i> 
+    93)
+GET-DISK-UTILIZATION
+? (defun check-disk-utilization (name threshold)
+    (let ((utilization (disk-utilization name)))
+      (when (&gt;= utilization threshold)
+        (signal 'high-disk-utilization
+                :disk-name name
+                :current utilization
+                :threshold threshold))))
+CHECK-DISK-UTILIZATION
+? (defun log-to-disk (record name)
+    (handler-bind ((high-disk-utilization 
+                    #'(lambda (c)
+                        (when (y-or-n-p "~&amp;~A Panic?" c)
+                          (return-from log-to-disk nil)))))
+      (check-disk-utilization name 90)
+      (print record))
+    t)
+LOG-TO-DISK
+? (log-to-disk "Hello" 'disk1)
+Disk DISK1 is 93% full; threshold is 90%. Panic? (y or n)  <b>n</b> 
+"Hello" 
+T
+? (log-to-disk "Goodbye" 'disk1)
+Disk DISK1 is 93% full; threshold is 90%. Panic? (y or n)  <b>y</b> 
+NIL
+? (check-disk-utilization 'disk1 90)
+NIL
+</pre> 
+
+<!-- handled/unhandled error/signal --> 
+
+<p>
+Обратите внимание, что условие сигнализации <code>CHECK-DISK-UTILIZATION</code>
+действует только тогда, когда обработчик устанавливается для условия
+<code>HIGH-DISK-UTILIZATION</code>. Из-за этого вы можете написать код 
+сигнализации исключения, не зная заранее, что клиент предоставит обработчик. 
+Это наиболее полезно, когда исключение предоставляет информацию о запущенной 
+программе, но не является ошибкой, если его оставить без обработки.
+
+<!-- cerror w/ restart-bind to add restarts --> 
+
+<p>
+В следующем примере мы расширим параметры перезапуска, доступные для 
+<code>CERROR</code>. <code>RESTART-BIND</code> определяет для каждого 
+нового перезапуска, сообщение, которое будет распечатано пользовательским 
+интерфейсом перезапуска, и функцию, которая будет выполняться, когда 
+пользователь выберет перезапуск.
+
+<pre>
+? (define-condition device-unresponsive ()
+                    ((device :initarg :device :reader device))
+    (:report (lambda (condition stream)
+               (format stream "Device ~A is unresponsive."
+                       (device condition)))))
+DEVICE-UNRESPONSIVE
+? (defun send-query (device query)
+    (format t "~&amp;Sending ~S ~S~%" device query))
+SEND-QUERY
+? (defun accept-response (device)
+    <i>;; For the example, the device always fails.</i> 
+    nil)
+ACCEPT-RESPONSE
+? (defun reset-device (device)
+    (format t "~&amp;Resetting ~S~%" device))
+RESET-DEVICE
+? (defun query-device (device)
+    (restart-bind ((nil #'(lambda () (reset-device device))
+                        :report-function
+                        #'(lambda (stream)
+                            (format stream "Reset device.")))
+                   (nil #'(lambda ()
+                            (format t "~&amp;New device: ")
+                            (finish-output)
+                            (setq device (read)))
+                        :report-function
+                        #'(lambda (stream)
+                            (format stream "Try a different device.")))
+                   (nil #'(lambda ()
+                            (return-from query-device :gave-up))
+                        :report-function
+                        #'(lambda (stream)
+                            (format stream "Give up."))))
+      (loop
+        (send-query device 'query)
+        (let ((answer (accept-response device)))
+          (if answer
+            (return answer)
+            (cerror "Try again."
+                    'device-unresponsive :device device))))))
+QUERY-DEVICE
+? (query-device 'foo)
+Sending FOO QUERY
+Error: Device FOO is unresponsive.
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 1
+Sending FOO QUERY
+Error: Device FOO is unresponsive.
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 2
+Resetting FOO
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 1
+Sending FOO QUERY
+Error: Device FOO is unresponsive.
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 3
+New device: <b>bar</b> 
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 1
+Error: Device BAR is unresponsive.
+Restart options:
+  1. Try again.
+  2. Reset device.
+  3. Try a different device.
+  4. Give up.
+  5. Top level
+  ? 4
+:GAVE-UP
+</pre> 
+
+<p>
+Перезапуск "Try again"(попробовать снова) устанавливается формой
+<code>CERROR</code>; выбор этого перезапуска позволяет программе продолжить 
+работу из формы <code>CERROR</code>. Перезапуски "Reset device", 
+"Try a different device" и "Give up" создаются в форме <code>RESTART-BIND</code>; 
+выбор одного из них выполняет соответствующую функцию. Из перезапусков, 
+определенных в <code>RESTART-BIND</code>, только перезапуск "Give up/отказаться" 
+передает управление из формы <code>CERROR</code> - остальные возвращают управление
+в <code>CERROR</code>, чтобы снова отобразить меню выбора перезапуска.
+
+<!-- recovery strategies --> 
+
+<p>
+Теперь вы познакомились с основами обработчиков состояний и перезапусков. 
+Lisp имеет дополнительные встроенные абстракции, которые расширяют эти понятия. 
+Если вы заинтересовались, вам следует проконсультироваться с общим справочником Lisp.
+
+<p>
+Есть еще одна вещь, которую вы должны знать о обработке условий. 
+Как мы видели ранее, <code>ERROR</code> приводит к остановке вашей 
+программы в отладчике Lisp. Вы не можете продолжить работу после 
+вызова <code>ERROR</code>, но большинство систем Lisp позволят вам 
+выполнить резервное копирование, исправить проблему, вызвавшую ошибку, 
+и повторно запустить эту часть программы. Если вы сделаете все правильно, 
+ваша программа больше не будет вызывать <code>ERROR</code>. Это удивительно 
+мощный инструмент для использования при разработке программ. Но вы не 
+хотите подвергать своих пользователей такому опыту - они не будут 
+так впечатлены отладчиком Lisp, как вы.
+
+<p>Чтобы защитить пользователей от отладчика,можно обернуть части 
+программы в форму <code>IGNORE-ERRORS</code>.
+
+<pre>
+? (ignore-errors 
+   (error "Something bad has happened.")
+   (print "Didn't get here."))
+NIL
+#&lt;SIMPLE-ERROR #x42B26B6&gt;
+? (ignore-errors
+   (* 7 9))
+63
+</pre> 
+
+<p>
+Если ошибка возникает в пределах формы <code>IGNORE-ERRORS</code>, выполнение 
+программы заканчивается в этой точке, и <code>IGNORE-ERRORS</code> возвращает 
+два значения: <code>NIL</code> и условие, сигнализируемое <code>ERROR</code>.
+ <code>ERROR</code>.
+
+<p>
+Вы должны использовать <code>IGNORE-ERRORS</code> рассудительно. Используйте 
+его только для обертывания форм,для которых вы не можете иначе предоставить 
+обработчики. Обратите также внимание, что значения, возвращаемые с помощью 
+<code>IGNORE-ERRORS</code>, не очень информативны. Но вы можете декодировать 
+второе возвращаемое значение, чтобы напечатать фактическое сообщение об ошибке.
+
+<pre>
+? (defmacro report-error (&amp;body body)
+    (let ((results (gensym))
+          (condition (gensym)))
+      `(let ((,results (multiple-value-list
+                        (ignore-errors 
+                         ,@body))))
+         (if (and (null (first ,results))
+                  (typep (second ,results) 'condition)
+                  (null (nthcdr 2 ,results)))
+           (let ((,condition (second ,results)))
+             (typecase ,condition
+               (simple-condition
+                (apply #'format t 
+                       (simple-condition-format-control ,condition) 
+                       (simple-condition-format-arguments ,condition)))
+               (otherwise
+                (format t "~A error." (type-of ,condition))))
+             (values))
+           (values-list ,results)))))
+REPORT-ERROR
+? (report-error (error "I feel like I'm losing my mind, Dave."))
+I feel like I'm losing my mind, Dave.
+? (report-error (+ 1 no-variable-by-this-name))
+UNBOUND-VARIABLE error.
+? (report-error (* 7 'f))
+TYPE-ERROR error.
+? (report-error (let ((n 1)) (/ 8 (decf n))))
+DIVISION-BY-ZERO error.
+? (report-error (* 2 pi)) <i>; not an error</i> 
+6.283185307179586
+? (report-error (values 1 2 3 4)) <i>; not an error</i> 
+</pre> 
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter22.html">Chapter 22</a> | Chapter 23 | <a href="chapter24.html">Chapter 24</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

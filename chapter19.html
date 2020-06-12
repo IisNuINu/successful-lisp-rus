@@ -1,0 +1,350 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 19</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 19 - Потоки</h1> 
+
+<p>Все функции ввода-вывода в Lisp принимают аргумент поток(stream). В некоторых случаях 
+(например, <code>READ</code> и <code>PRINT</code>) аргумент stream является 
+необязательным; по умолчанию вход поступает из потока <code>*STANDARD-INPUT*</code>
+(обычно подключенного к клавиатуре), а выход - из потока <code>*STANDARD-OUTPUT*</code>
+(обычно подключенного к дисплею). Вы можете перенаправить ввод-вывод, либо предоставив
+дополнительные аргументы потока для чтения и печати (а также другие функции ввода-вывода), либо связав <code>*STANDARD-INPUT*</code> и <code>*STANDARD-OUTPUT*</code> с различными
+потоками. (Мы увидим оба этих подхода, используемые в следующих примерах.)
+
+<h2>Потоки предоставляют канал для передачи
+ и приема данных</h2>
+
+<p>
+На протяжении всех предыдущих глав этой книги потоки были задействованы 
+всякий раз, когда мы видели пример, который делает ввод или вывод - и все 
+примеры делают ввод/вывод, если считать наши взаимодействия со слушателем. 
+Поток Lisp может предоставлять (источник) или потреблять (приемник) последовательность
+байтов или символов. (Вспомните определение байта в Лиспе: байт может содержать любое
+количество битов.)
+
+<p>
+Некоторые функции ввода-вывода принимают <code>T</code> или <code>NIL</code> 
+в качестве обозначения потока. <code>T</code> - это синоним <code>*TERMINAL-IO*</code>,
+двунаправленного (входного и выходного) потока, который обычно считывает данные из
+<code>*STANDARD-INPUT*</code> и записывает их в <code>*STANDARD-OUTPUT*</code>. 
+<code>NIL</code> - это синоним <code>*STANDARD-INPUT*</code> при использовании в 
+контексте, который ожидает получить входной поток, или для <code>*STANDARD-OUTPUT*</code>
+при использовании в контексте которого ожидает поток вывода.
+
+<blockquote>
+<code>FORMAT</code> (который мы уже видели в нескольких примерах и подробно 
+рассмотрим в <a href="chapter24.html">Главе 24</a>) ожидает в качестве своего 
+первого аргумента поток, <code>T</code>,  <code>NIL</code> или строку с указателем
+заполнения. Однако в этом случае обозначитель NIL заставляет формат возвращать строку, а не записывать в *STANDARD-OUTPUT*, как это имеет место для других функций ввода-вывода.
+</blockquote> 
+
+<p>
+Мощь потоков происходит от способности связывать поток с файлом, устройством 
+(например, клавиатурой, дисплеем или сетью) или буфером памяти. Программный 
+ввод-вывод может быть направлен по желанию, просто созданием соответствующего
+типа потока для использования вашей программой. Реализация ввода-вывода 
+абстрагируется потоком, поэтому вашей программе не придется беспокоиться 
+о низкоуровневых деталях.
+
+<p>
+Lisp также предоставляет ряд специальных потоков, которые служат для 
+объединения или манипулирования другими потоками новыми способами. 
+<code>TWO-WAY-STREAM</code>(Двусторонний поток) объединяет отдельный 
+входной поток и выходной поток в поток ввода-вывода. 
+<code>BROADCAST-STREAM</code>(Широковещательный поток) отправляет 
+выходные данные в ноль или более выходных потоков; думайте об этом 
+как о мусорном ведре, когда он используется с нулем потоков, и о 
+вещателе, когда он используется с несколькими потоками. 
+<code>CONCATENATED-STREAM</code>(Объединенный поток) принимает входные 
+запросы от имени нуля или более входных потоков; когда входные данные 
+одного потока исчерпаны, объединенный поток начинает считывание из 
+своего следующего входного потока. 
+<code>ECHO-STREAM</code>(Эхо-поток) подобен двустороннему потоку, 
+с добавленной функцией, что все, что ваша программа считывает из 
+входного потока двухстороннего потока, автоматически получает эхо 
+в соответствующий выходной поток. Наконец, 
+<code>SYNONYM-STREAM</code>(синоним-поток) - это псевдоним для 
+другого потока; псевдоним может быть изменен во время выполнения 
+без создания нового <code>SYNONYM-STREAM</code>.
+
+<p>Довольно много функций ввода-вывода работают непосредственно на потоках:
+
+
+<p>
+
+<dl>
+<dt><code>READ-BYTE</code> <i>stream &amp;optional eof-error-p eof-value</i> 
+    and <code>READ-CHAR</code> <i>&amp;optional stream eof-error-p eof-value recursive-p</i>  
+<dd>Считывает байт или символьный знак из входного потока.
+
+<dt><code>WRITE-BYTE</code> <i>byte stream</i> 
+    and <code>WRITE-CHAR</code> <i>char &amp;optional stream</i> 
+<dd>Записывает байт или символьный знак в выходной поток.
+
+<dt><code>READ-LINE</code> <i>&amp;optional stream eof-error-p eof-value recursive-p</i>
+    и <code>WRITE-LINE</code> <i>string &amp;optional stream &amp;key start end</i> 
+<dd>Читает или пишет строку текста, заканчивающуюся новой строкой. (Знак
+новая строка считывается и отбрасывается на входе, или добавляется к выводу.) 
+Аргументы ключевых слов <code>:START</code> и <code>:END</code> позволяют ограничить
+часть строки, написанной <code>WRITE-LINE</code>..
+
+<dt><code>WRITE-STRING</code> <i>string &amp;optional stream &amp;key start end</i> 
+<dd>Как и <code>WRITE-STRING</code>,но не добавляет знак новой строки при выводе.
+
+<dt><code>PEEK-CHAR</code> <i>&amp;optional peek-type stream eof-error-p eof-value recursive-p</i>
+<dd>Считывает символьный знак из входного потока, 
+не потребляя(извлекая) его. (Знак остается доступным для следующей 
+операции ввода.) Опционный <i>peek-type</i>-тип аргумента изменяет 
+поведение <code>PEEK-CHAR</code>, чтобы пропускать начальный пробел 
+(<i>peek-type</i> <code>T</code>) или пропустить первые знаки
+заданного символьного знака (<i>peek-type</i>  character/символьный знак).
+
+<dt><code>UNREAD-CHAR</code> <i>character &amp;optional stream</i> 
+<dd>Выталкивает знак (который должен быть последним прочитанным знаком) 
+обратно в переднюю часть входного потока, где он остается до тех пор, 
+пока не будет прочитан снова.
+
+<dt><code>LISTEN</code> <i>&amp;optional stream</i> 
+<dd>Возвращает значение true, если во входном потоке имеются данные 
+(например, еще не прочитанные нажатия клавиш или неиспользуемые файловые данные).
+
+<dt><code>READ-CHAR-NO-HANG</code> <i>&amp;optional stream eof-error-p eof-value recursive-p</i>
+<dd>Если символьный знак доступен во входном потоке, возвращает его. 
+В противном случае возвращает <code>NIL</code>.
+
+<dt><code>TERPRI</code> <i>&amp;optional stream</i> 
+    и <code>FRESH-LINE</code> <i>&amp;optional stream</i> 
+<dd><code>TERPRI</code> безоговорочно записывает знак новой строки
+в выходной поток. <code>FRESH-LINE</code> записывает знак новой строки, 
+если только он не может определить, что выходной поток уже находится в 
+начале новой строки; <code>FRESH-LINE</code> возвращает  <code>T</code>, 
+если он действительно написал новую строку, и <code>NIL</code>
+ в противном случае.
+
+<dt><code>CLEAR-INPUT</code> <i>&amp;optional stream</i>
+<dd>Сбрасывает непрочитанные данные из входного потока, если это имеет смысл.
+
+<dt><code>FINISH-OUTPUT</code> <i>&amp;optional stream</i>, 
+    <code>FORCE-OUTPUT</code> <i>&amp;optional stream</i>, and 
+    <code>CLEAR-OUTPUT</code> <i>&amp;optional stream</i>
+<dd>Эти функции очищают выходные буферы, если это имеет смысл сделать. 
+<code>FINISH-OUTPUT</code> пытается убедиться, что буферизованный вывод 
+достигает своего назначения, а затем возвращается. <code>FORCE-OUTPUT</code>
+пытается инициировать вывод из буфера, но не ждет завершения, как 
+<code>FINISH-OUTPUT</code>. <code>CLEAR-OUTPUT</code> пытается отбросить 
+буферизованные данные и прервать все еще выполняемый вывод данных.
+</dl> 
+
+<p>
+В функциях чтения, перечисленных выше, необязательные аргументы 
+<code>EOF-ERROR-P</code> и <code>EOF-VALUE</code>  указывают, 
+что произойдет, когда ваша программа делает попытку чтения из 
+исчерпанного потока. Если <code>EOF-ERROR-P</code> имеет значение true 
+(по умолчанию), то Lisp будет сигнализировать об ошибке при попытке 
+прочитать исчерпанный поток. Если <code>EOF-ERROR-P</code> равно <code>NIL</code>,
+то Lisp возвращает <code>EOF-VALUE</code> (default <code>NIL</code>) 
+вместо сигнализации об ошибке.
+
+<p>Необязательный аргумент <code>RECURSIVE-P</code> зарезервирован 
+для использования функциями, вызываемыми программой чтения Lisp.
+
+<h2>Создание потоков на файлах</h2>
+
+<p>
+Функция <code>OPEN</code> создает <code>FILE-STREAM</code>(файловый поток). 
+Аргументы ключевые слова определяют атрибуты потока (<code>:DIRECTION</code>,
+ <code>:ELEMENT-TYPE</code>, и <code>:EXTERNAL-FORMAT</code>) и способы обработки
+исключительных условий (<code>:IF-EXISTS</code> и  <code>:IF-DOES-NOT-EXIST</code>). 
+Если <code>OPEN</code> проходит успешно, он возвращает поток, в противном случае он
+возвращает <code>NIL</code> или сигнализирует об ошибке.
+
+<pre>
+Keyword      Value     Stream Direction
+----------   -------   -----------------------------
+:DIRECTION   :INPUT    input (default)
+:DIRECTION   :OUTPUT   output
+:DIRECTION   :IO       input & output
+:DIRECTION   :PROBE    none, returns a closed stream
+
+Keyword      Value                Action if File Exists
+----------   ------------------   ---------------------------------------
+:IF-EXISTS   NIL                  return NIL
+:IF-EXISTS   :ERROR               signal an error
+:IF-EXISTS   :NEW-VERSION         next version (or error)
+:IF-EXISTS   :RENAME              rename existing, create new
+:IF-EXISTS   :SUPERSEDE           replace file upon CLOSE
+:IF-EXISTS   :RENAME-AND-DELETE   rename and delete existing, create new
+:IF-EXISTS   :OVERWRITE           reuse existing file (position at start)
+:IF-EXISTS   :APPEND              reuse existing file (position at end)
+
+Keyword              Value     Action if File Does Not Exist
+------------------   -------   -----------------------------
+:IF-DOES-NOT-EXIST   NIL       return NIL
+:IF-DOES-NOT-EXIST   :ERROR    signal an error
+:IF-DOES-NOT-EXIST   :CREATE   create the file
+
+Keyword         Value               Element Type
+-------------   --------------      ------------------------
+:ELEMENT-TYPE   :DEFAULT            character (default)
+:ELEMENT-TYPE   'CHARACTER          character
+:ELEMENT-TYPE   'SIGNED-BYTE        signed byte
+:ELEMENT-TYPE   'UNSIGNED-BYTE      unsigned byte
+:ELEMENT-TYPE   <i>character subtype</i>   character subtype
+:ELEMENT-TYPE   <i>integer subtype</i>     integer subtype
+:ELEMENT-TYPE   <i>other</i>               implementation-dependent
+
+Keyword            Value      File Format
+----------------   --------   ------------------------
+:EXTERNAL-FORMAT   :DEFAULT   default (default)
+:EXTERNAL-FORMAT   <i>other</i>      implementation-dependent
+</pre> 
+
+<p>После открытия потока его можно использовать с соответствующими функциями 
+ввода или вывода, а также с запросами, возвращающими атрибуты потока или файла. 
+Следующие запросы могут быть применены ко всем видам потоков. Все они принимают 
+аргумент поток:
+
+<pre>
+Function               Returns
+--------------------   -----------------------------------------------------
+INPUT-STREAM-P         true if stream can provide input
+OUTPUT-STREAM-P        true if stream can accept output
+OPEN-STREAM-P          true if stream is open
+STREAM-ELEMENT-TYPE    the type specifier for stream elements
+INTERACTIVE-STREAM-P   true if stream is interactive (e.g. keyboard/display)
+</pre> 
+
+<p>Эти запросы могут быть применены к потокам файлов. 
+Они также принимают аргумент поток:
+
+<pre>
+Function                 Returns
+--------------------     -----------------------------------------------------
+STREAM-EXTERNAL-FORMAT   implementation-dependent
+FILE-POSITION            current file offset for read or write, or NIL
+FILE-LENGTH              length of stream, or NIL
+</pre> 
+
+<p>
+<code>FILE-POSITION</code>  возвращает смещение в байтах внутри потока. 
+Это точный подсчет для потоков подтипа целых чисел(смотрите ниже для 
+дальнейшего описания двоичного ввода-вывода). Для потоков подтипа символьных
+знаков позиция гарантированно увеличивается только во время чтения или записи; 
+это позволяет варьировать форматы текстовых записей и Терминаторы строк.
+
+<p>
+<code>FILE-POSITION</code>  также может быть вызван со вторым аргументом, 
+чтобы изменить смещение файла для следующего чтения или записи. 
+При использовании для этой цели FILE-POSITION возвращает true, когда это 
+происходит успешно.
+
+<p>
+Вы всегда должны закрывать поток, когда вы закончите его использовать (за исключением интерактивных потоков, предоставленных вам Lisp, таких как<code>*STANDARD-INPUT*</code>,
+<code>*STANDARD-OUTPUT*</code>, и <code>*TERMINAL-IO*</code>). 
+Шаблон "открыть, обработать, закрыть" очень распространен, поэтому Lisp предоставляет
+макросы, чтобы сделать шаблон простым в кодировании и безошибочным.
+
+<p>
+<code>WITH-OPEN-FILE</code>  адаптирован для файловых потоков.Его аргументы -
+это переменная, которая должна быть привязана к потоку, путь и (необязательно) 
+ключевые аргументы, подходящие для <code>OPEN</code>. Поток всегда закрывается, 
+когда элемент управления покидает форму <code>WITH-OPEN-FILE</code>
+
+<pre>
+(with-open-file (stream "my-file.dat" :direction :input)
+  ... do something using stream ...)
+</pre> 
+
+<p>
+<code>WITH-OPEN-STREAM</code>  ожидает, что имя переменной и форму для
+вычисления; форма должна выдавать значение равное потоку или <code>NIL</code>.
+Этот макрос обычно используется с конструкторами специальных потоков, таких
+как: <code>MAKE-BROADCAST-STREAM</code>, <code>MAKE-ECHO-STREAM</code>, 
+<code>MAKE-TWO-WAY-STREAM</code>, <code>MAKE-CONCATENATED-STREAM</code>, 
+и <code>MAKE-SYNONYM-STREAM</code>.
+
+<h2>Создание потоков на строках</h2>
+
+<p>
+Данные, считываемые или записываемые потоком, не обязательно должны быть 
+связаны с устройством - они также могут находиться в памяти. Строковые потоки
+позволяют вам читать и писать на скоростях памяти, но они не могут обеспечить 
+ни файловые, ни интерактивные возможности. Lisp предоставляет конструкторы 
+(<code>MAKE-STRING-INPUT-STREAM</code> и 
+<code>MAKE-STRING-OUTPUT-STREAM</code>), плюс макросы для поддержки шаблона
+работы: "Открытия, обработать, закрыть".
+
+<pre>
+? (with-input-from-string (stream "This is my input via stream.")
+    (read stream))
+THIS
+? (with-output-to-string (stream)
+    (princ "I'm writing to memory!" stream))
+"I'm writing to memory!"
+</pre> 
+
+<p>
+Эти макросы принимают ключевые слова и необязательные аргументы. 
+<code>WITH-INPUT-FROM-STRING</code> позволяет аргументам ключевым словам
+<code>:BEGIN</code> и <code>:END</code> устанавливать границы части строки, 
+считываемой через поток. A аргумент ключевое слово <code>:INDEX</code>
+позволяет вам задать имя переменной, получающей смещение следующего 
+строкового элемента для чтения - он устанавливается только при выходе из 
+формы <code>WITH-INPUT-FROM-STRING</code>.
+
+<p>
+<code>WITH-OUTPUT-TO-STRING</code> позволяет использовать 
+необязательную форму, которая вычисляется для получения выходной строки; 
+если эта форма отсутствует или равна <code>NIL</code>, макрос создает строку 
+для вас, используя аргумент ключевое слово <code>:ELEMENT-TYPE</code>.
+
+<h2>Двоичный Ввод/Вывод</h2>
+
+<p>
+Лисп поддерживает двоичный ввод/вывода через потоки элементов, типы которых 
+конечны (т. е. ограничена) подтипом типа <code>INTEGER</code>. Вот некоторые 
+примеры подходящих типов:
+
+<ul>
+<li>Зависимые от реализации
+<ul>
+ <li><code>SIGNED-BYTE</code> 
+ <li><code>UNSIGNED-BYTE</code> 
+</ul> 
+<li>Диапазон значений
+<ul>
+ <li><code>(INTEGER 0 31)</code> 
+ <li><code>(INTEGER -16 15)</code> 
+</ul> 
+<li>Определенное количество битов
+<ul>
+ <li><code>(SIGNED-BYTE 8)</code> 
+ <li><code>(UNSIGNED-BYTE 6)</code> 
+ <li><code>BIT</code> 
+</ul> 
+</ul> 
+
+<p>
+Реализации ANSI Common Lisp должны поддерживать любой из этих типов 
+для двоичного ввода-вывода. однако реализация не обязана напрямую 
+сопоставлять указанный  <code>:ELEMENT-TYPE</code> с базовой файловой системой; 
+реализация может изменять внешний формат до тех пор, пока данные, 
+считываемые из двоичного файла, совпадают с данными, записанными с 
+использованием того же <code>:ELEMENT-TYPE</code>.
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter18.html">Chapter 18</a> | Chapter 19 | <a href="chapter20.html">Chapter 20</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

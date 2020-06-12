@@ -1,0 +1,248 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 5</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 5 - Введение в итерацию</h1> 
+
+<p>
+Лисп имеет несколько способов выполнить итерацию. В этом разделе мы 
+рассмотрим наиболее распространенные циклические конструкции. 
+Позже, в <a href="chapter12.html">Главе 12</a>, мы рассмотрим отображение
+(mapping), а затем кратко рассмотрим <i>series</i>(последовательности) в 
+<a href="chapter32.html">Главе 32</a>; они оба тесно связаны с итерацией.
+<p>
+
+<h2>Простой LOOP вечный цикл...</h2>
+
+<p>Самый простой цикл в Lisp-это просто форма <code>LOOP</code>, 
+обернутая вокруг всего, что вы хотите повторить. Прежде чем вы попробуете 
+этот следующий кусок кода, узнайте, как прервать выполнение вашей 
+системы Lisp; обычно это Command-period на Macintosh или Control-Break
+на ПК.
+
+<pre>
+? (loop
+    (print "Look, I'm looping!"))
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+"Look, I'm looping!" 
+<i>... and so on, until you interrupt execution...</i> 
+Aborted
+? 
+</pre> 
+
+<p>TЭтот вид бесконечного цикла имеет законные применения.
+Вы уже знакомы с одним из них: <code>(LOOP (PRINT (EVAL (READ))))</code>, 
+Lisp REPL(read-eval-print loop).<p>
+
+<blockquote>
+На самом деле, ваша система Lisp делает некоторые дополнительные вещи в своем цикле read-eval-print:: 
+<ul>
+<li>она ловит все ошибки, чтобы вы не могли случайно вырваться из цикла
+<li>она обеспечивает контролируемый способ выхода из цикла
+<li>она отслеживает самые последние введенные выражения, результаты и печать выходных данных
+</ul> 
+</blockquote> 
+
+<h2>Но выход есть!</h2>
+
+<p>В большинстве случаев, когда вы пишете форму <code>LOOP</code>, вы хотели 
+бы иметь выход. К счастью, форма <code>RETURN</code> в любом месте внутри приведет к тому, что управления покинет  <code>LOOP</code>; любое указанное 
+вами значение становится значением формы <code>LOOP</code>:
+<p>
+
+<pre>
+? (loop
+    (print "Here I am.")
+    (return 17)
+    (print "I never got here."))
+"Here I am."
+17
+</pre> 
+
+<code>RETURN</code> обычно используется в условной форме, как здесь:
+
+<pre>
+? (let ((n 0))
+    (loop
+      (when (&gt; n 10) (return))
+      (print n) (prin1 (* n n))
+      (incf n)))
+0 0
+1 1
+2 4
+3 9
+4 16
+5 25
+6 36
+7 49
+8 64
+9 81
+10 100
+NIL
+?
+</pre> 
+
+<p>Этот пример можно было бы сделать лучше, используя форму <code>DOTIMES</code>,
+см. ниже. Но комбинация <code>LOOP</code> и <code>RETURN</code> обеспечивает
+гибкость для возврата из середины цикла или даже из нескольких мест внутри 
+цикла, если это необходимо.
+<p>
+
+<h2>Используйте DOTIMES для счетного цикла</h2>
+
+<p>Чтобы просто получить цикл для некоторого фиксированного числа итераций, 
+форма <code>DOTIMES</code> - это ваш лучший выбор. Предыдущий пример 
+упрощается до:<p>
+
+<pre>
+? (dotimes (n 11)
+    (print n) (prin1 (* n n)))
+0 0
+1 1
+2 4
+3 9
+4 16
+5 25
+6 36
+7 49
+8 64
+9 81
+10 100
+NIL
+?
+</pre> 
+
+<code>DOTIMES</code> всегда возвращает NIL (или результат вычисления 
+его необязательного третьего аргумента).</p>
+
+<h2>Используйте DOLIST для обработки элементов списка</h2>
+
+<p>Еще одно распространенное применение итерации - обработка каждого элемента
+списка. <code>DOLIST</code> поддерживает это:
+<p>
+
+<pre>
+? (dolist (item '(1 2 4 5 9 17 25))
+    (format t "~&amp;~D is~:[n't~;~] a perfect square.~%" item (integerp (sqrt item))))
+1 is a perfect square.
+2 isn't a perfect square.
+4 is a perfect square.
+5 isn't a perfect square.
+9 is a perfect square.
+17 isn't a perfect square.
+25 is a perfect square.
+NIL
+</pre> 
+<p>
+(Прим.Переводчика) этот пример у меня не работает, т.к. sqrt стабильно возвращает float,
+таким образом и integerp никогда не вернет истину, поэтому надо сделать несколько больше преобразований:
+
+<pre> 
+(dolist (item '(1 2 4 5 9 17 25))
+  (format t "~&~D is~:[n't~;~] a perfect square.~%"
+          item
+          (= 1 (denominator (rational (sqrt item))))))
+</pre> 
+
+
+<blockquote> <p>В этом примере мы сделали несколько необычных 
+вещей с <code>FORMAT</code>. Если вы хотите узнать больше о том, 
+что может сделать <code>FORMAT</code>, вам следует заглянуть в 
+<a href="chapter24.html">Главу 24</a>. </blockquote> 
+
+<p>В предыдущем коде использовался список чисел, но Lisp позволяет 
+списку хранить любой тип объекта:
+<p>
+
+<pre>
+? (dolist (item `(1 foo "Hello" 79.3 2/3 ,#'abs))
+    (format t "~&amp;~S is a ~A~%" item (type-of item)))
+1 is a FIXNUM
+FOO is a SYMBOL
+"Hello" is a (SIMPLE-BASE-STRING 5)
+79.3 is a DOUBLE-FLOAT
+2/3 is a RATIO
+#&lt;Compiled-function ABS #x1E9CC3E&gt; is a FUNCTION
+NIL
+? 
+</pre> 
+
+<blockquote>
+Обратите внимание, как мы использовали обратную кавычку и запятую для
+построения списка в этом примере. Вы понимаете, почему мы это сделали? 
+Все элементы списка вплоть до соотношения <code>2/3</code> являются
+самовычислимыми; мы могли бы поместить их в цитируемый список, как это 
+было в предыдущем примере. Но <code>#'abs</code> эквивалентно 
+<code>(function abs)</code>, которая, если ее цитировать, представляет 
+собой всего лишь список из двух символов. Чтобы получить саму функцию в цитируемом списке, нам пришлось принудительно вычислить форму 
+<code>#'abs</code>, используя запятую внутри списка с обратной 
+кавычкой.
+</blockquote> 
+
+<p>Как и <code>DOTIMES</code>, <code>DOLIST</code> всегда 
+возвращает NIL (или результат его необязательного третьего аргумента).
+
+<h2>DO это сложно, но мощно</h2>
+
+<p>Форма <code>DO</code> позволяет выполнять итерацию по нескольким 
+переменным одновременно, используя произвольные формы для перехода 
+каждой переменной к следующему значению. Вот пример, который одновременно
+выполняет итерацию по элементам списка и запускает счетчик:
+<p>
+
+<pre>
+? (do ((which 1 (1+ which))
+       (list '(foo bar baz qux) (rest list)))
+      ((null list) 'done)
+    (format t "~&amp;Item ~D is ~S.~%" which (first list)))
+Item 1 is FOO.
+Item 2 is BAR.
+Item 3 is BAZ.
+Item 4 is QUX.
+DONE
+? 
+</pre> 
+
+<p>Чтобы лучше понять это, давайте рассмотрим общий синтаксис <code>DO</code>
+и соотнесем его части с примером:
+
+<pre>
+(do ((<i>var1 init1 step1</i>)
+     (<i>var2 init2 step2</i>)
+     <i>...</i>)
+    (<i>end-test result</i>)
+  <i>statement1
+  ...</i>)
+
+<i>var1</i>       = which
+<i>init1</i>      = 1
+<i>step1</i>      = (1+ which)
+<i>var2</i>       = list
+<i>init2</i>      = '(foo bar baz qux)
+<i>step2</i>      = (rest list)
+<i>end-test</i>   = (null list)
+<i>result</i>     = 'done
+<i>statement1</i> = (format t "~&amp;Item ~D is ~S.~%" which (first list))
+</pre> 
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter04.html">Chapter 4</a> | Chapter 5 | <a href="chapter06.html">Chapter 6</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

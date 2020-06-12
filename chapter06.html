@@ -1,0 +1,309 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 6</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 6 - Погружение в Структуры</h1> 
+
+Структуры были представлены в <a href="chapter03-10.html">Главе 3</a>. 
+В этой главе мы рассмотрим наиболее полезные дополнительные функции 
+структур.
+<p>
+
+<h2>Значения по умолчанию позволяют иногда опустить некоторые инициализаторы</h2>
+
+Обычно, если вы создадите новую структуру без указания значения для некоторого
+слота, этот слот по умолчанию будет равен <code>NIL</code>.
+<p>
+
+<pre>
+? (defstruct foo-struct a b c)
+FOO-STRUCT
+
+? (let ((foo-1 (make-foo-struct :a 1 :b "two")))
+    (print (foo-struct-b foo-1))
+    (print (foo-struct-c foo-1))
+    (values))
+"two"
+NIL
+</pre> 
+
+<blockquote>
+Примечание: мы используем форму <code>(values)</code для подавления 
+возвращаемого значения из формы <code>LET</code>. Иначе мы увидели бы 
+еще один напечатанный REPL-ом <code>NIL</code>
+</blockquote> 
+
+В тех случаях, когда значение <code>NIL</code> является разумным значением 
+по умолчанию, такое поведение является приемлемым. Но если нормальное 
+значение слота числовое, например, вы действительно хотели бы начать с 
+разумного значения по умолчанию, а не добавлять всякие проверки в код, который
+использует структуру. Полная форма спецификации слота - это список имени слота,
+его значения по умолчанию и дополнительных опций; указание голого имени вместо
+полного списка является сокращением для "значения по умолчанию NIL и никаких
+опций."
+<p>
+
+<pre>
+? (defstruct ship
+    (name "unnamed")
+    player
+    (x-pos 0.0)
+    (y-pos 0.0)
+    (x-vel 0.0)
+    (y-vel 0.0))
+SHIP
+</pre> 
+
+Когда мы создаем эту структуру с помощью <code>(MAKE-SHIP)</code>, 
+слот <code>NAME</code> по умолчанию имеет значение <code>"unnamed"</code>,
+слот <code>PLAYER</code> по умолчанию равен <code>NIL</code>, а слоты положения
+(position) и скорости(velocity) по умолчанию равны <code>0.0</code>.
+<p>
+
+Конечно, мы все еще можем указать значения слотов, чтобы переопределить 
+значения по умолчанию:
+<p>
+
+<pre>
+? (make-ship :name "Excalibur" :player "Dave" :x-pos 100.0 :y-pos 221.0)
+#S(SHIP :NAME "Excalibur" :PLAYER "Dave" :X-POS 100.0 :Y-POS 221.0 :X-VEL 0.0 :Y-VEL 0.0)
+</pre> 
+
+Вывод Lisp по умолчанию для структур позволяет легко видеть слоты и их значения.
+Мы дали явные значения для всех слотов, кроме двух слотов скорости, которые имеют
+свои значения по умолчанию.
+<p>
+
+<h2>Изменение Лисп способа печати ваших структур</h2>
+
+Чтобы напечатать структуру с помощью принтера(способа вывода объектов Лисп в
+стандартный вывод), отличного от принтера по умолчанию, можно определить новую функцию печати как параметр структуры.<p>
+
+<pre>
+? (defstruct (ship
+              (:print-function
+               (lambda (struct stream depth)
+                 (declare (ignore depth))
+                 (format stream "[ship ~A of ~A at (~D, ~D) moving (~D, ~D)]"
+                         (ship-name struct)
+                         (ship-player struct)
+                         (ship-x-pos struct)
+                         (ship-y-pos struct)
+                         (ship-x-vel struct)
+                         (ship-y-vel struct)))))
+    (name "unnamed")
+    player
+    (x-pos 0.0)
+    (y-pos 0.0)
+    (x-vel 0.0)
+    (y-vel 0.0))
+SHIP
+
+? (make-ship :name "Proud Mary" :player 'CCR)
+[ship Proud Mary of CCR at (0.0, 0.0) moving (0.0, 0.0)]
+</pre> 
+
+Вообще-то считается плохой практикой печатать то, что читатель(READER) не может
+интерпретировать. Наше использование скобок вокруг печатного описания 
+структуры Ship(корабля) не обязательно хорошо или плохо, это зависит 
+от того, как задана текущая таблица чтения (мы впервые увидели макросы чтения
+в <a href="chapter03-12.html">Главе 3, Урок 12</a>).
+<p>
+
+Один из способов гарантировать, что читатель не запутается, - это намеренно
+напечатать что-то, чтобы оно быть нечитаемым. По соглашению Lisp печатает 
+такие объекты, начиная с <code>#&lt;</code>. Вы можете изменить свой формат
+строк,так чтобы они читались как: 
+<code>"#&lt;ship ~A of ~A at (~D, ~D) moving (~D, ~D)&gt;"</code>, поэтому до
+<code>MAKE-SHIP</code> пример печати 
+<code>#&lt;ship Proud Mary of CCR at (0.0, 0.0) moving (0.0, 0.0)&gt;</code>
+Однако с 1990 года в системах Lisp появился  макрос 
+<code>PRINT-UNREADABLE-OBJECT</code>, который должен использоваться для этой
+цели. Если переменная управления принтером <code>*PRINT-READABLY*</code> 
+имеет значение true, то  <code>PRINT-UNREADABLE-OBJECT</code> 
+будет сигнализировать об ошибке.
+<p>
+
+<pre>
+<i>;; Use PRINT-UNREADABLE-OBJECT macro -- changes in <b>boldface</b> </i> 
+? (defstruct (ship
+              (:print-function
+               (lambda (struct stream depth)
+                 (declare (ignore depth))
+                 <b>(print-unreadable-object (struct stream)</b> 
+                   (format stream "ship ~A of ~A at (~D, ~D) moving (~D, ~D)"
+                           (ship-name struct)
+                           (ship-player struct)
+                           (ship-x-pos struct)
+                           (ship-y-pos struct)
+                           (ship-x-vel struct)
+                           (ship-y-vel struct))<b>)</b>)))
+    (name "unnamed")
+    player
+    (x-pos 0.0)
+    (y-pos 0.0)
+    (x-vel 0.0)
+    (y-vel 0.0))
+SHIP
+</pre> 
+
+<h2>Изменение способа хранения структур в памяти</h2>
+
+Lisp хранит структуры в зависимости от реализации, если не указано иное 
+с помощью параметры структуры. У вас есть два варианта, если вы решите 
+указать хранилище структуры: хранить её(структуру) в виде вектора 
+(возможно, с определенным типом для всех элементов) или в виде списка. 
+Здесь мы используем опцию нетипизированного вектора - опция списка аналогична:
+<p>
+
+<pre>
+? (defstruct (bar
+              (:type vector))
+    a b c)
+BAR
+
+? (make-bar)
+#(NIL NIL NIL)
+</pre> 
+
+Обратите внимание, что имена слотов не сохраняются при указании типа хранилища.
+Это, вероятно, самое большое преимущество для использования этой опции - 
+она может сэкономить память в размере машинного слова на слот в каждом
+экземпляре. Недостатком является то, что Lisp не распознает такую структуру
+как отдельный тип и не создает для вас предикат 
+<code>&lt;structure-name&gt;-P</code>.
+<p>
+
+Если вам достаточно возможности получить имя структуры, но все еще хотите
+сэкономить на средствах хранения, связанных с определением представления структуры, вы можете сделать это:<p>
+
+<pre>
+? (defstruct (bar
+              (:type vector)
+              :named)
+    a b c)
+BAR
+
+? (make-bar)
+#(BAR NIL NIL NIL)
+</pre> 
+
+Использование опции представления в виде списка имеет недостатки, отмеченные
+выше, но не имеет никаких преимуществ; костяк списка обычно добавляет машинное
+слово памяти на слот по сравнению с представлением по умолчанию, которое обычно
+является вектором. Единственный случай, когда имеет смысл явно указать
+представление списка, - это когда представление структуры по умолчанию основано
+на списке или когда реализация Lisp накладывает некоторое искусственное
+ограничение на пространство, зарезервированное для хранения векторов; 
+ни тот, ни другой случай не применим в современных реализациях.
+<p>
+
+<h2>Сокращенные имена процедур доступа к слотам</h2>
+
+Имена средств доступа к слотам(accessor-ов) строятся из названия структуры
+и слота. Если структура и слот имеют длинные имена, имена доступа могут стать
+громоздкими. Вы можете несколько сократить имена, используя параметр структуры: 
+<code>:CONC-NAME</code>, чтобы указать имя, которое будет использоваться вместо имени структуры.
+
+
+<pre>
+? (defstruct (galaxy-class-cruiser-ship
+              (:conc-name gcc-ship-)) <i>; name includes trailing hyphen!</i> 
+    name player (x-pos 0.0) (y-pos 0.0) (x-vel 0.0) (y-vel 0.0))
+GALAXY-CLASS-CRUISER-SHIP
+
+? (let ((ship (make-galaxy-class-cruiser-ship)))
+    (print (gcc-ship-x-pos ship)) <i>; note abbreviated accessor name</i> 
+    (values))
+0.0
+</pre> 
+
+<h2>Выделение новых структур без использования аргументов ключевых слов</h2>
+
+Для некоторых структур может оказаться более удобным создать новый экземпляр,
+используя только список аргументов вместо ключевых слов и аргументов. 
+Список аргументов конструктора структуры можно переопределить с помощью
+параметра <code>:CONSTRUCTOR</code> .<p>
+
+<pre>
+? (defstruct (3d-point
+              (:constructor
+               create-3d-point (x y z)))
+    x y z)
+3D-POINT
+
+? (create-3d-point 1 -2 3)
+#S(3D-POINT :X 1 :Y -2 :Z 3)
+</pre> 
+
+<blockquote>
+Примечание: значения слотов по умолчанию <em>не</em> равны <code>NIL</code>,
+ если вы используете опцию <code>:CONSTRUCTOR</code>!
+</blockquote> 
+
+Большинство параметров лямбда-списка доступны для функции конструктора
+ - обратитесь к справочному руководству Lisp для получения подробной
+информации.<p>
+
+<h2>Определение одной структуры как расширение другой</h2>
+
+Мы используем наследование для определения одного объекта в терминах другого.
+Структуры допускают очень простую форму наследования с использованием опции:
+<code>:INCLUDE</code>.<p>
+
+<pre>
+? (defstruct employee
+    name department salary social-security-number telephone)
+EMPLOYEE
+
+? (make-employee)
+#S(EMPLOYEE :NAME NIL :DEPARTMENT NIL :SALARY NIL :SOCIAL-SECURITY-NUMBER NIL :TELEPHONE NIL)
+
+? (defstruct (manager
+              (:include employee))
+    bonus direct-reports)
+MANAGER
+
+? (make-manager)
+#S(MANAGER :NAME NIL :DEPARTMENT NIL :SALARY NIL :SOCIAL-SECURITY-NUMBER NIL :TELEPHONE NIL :BONUS NIL :DIRECT-REPORTS NIL)
+</pre> 
+
+Все методы доступа, которые применяются к <code>EMPLOYEE</code>, также
+применяются к <code>MANAGER</code>, и экземпляр <code>MANAGER</code> также
+является экземпляром <code>EMPLOYEE</code>. Обратите внимание в следующем
+примере, как методы доступа <code>...-NAME</code> как для 
+<code>MANAGER</code>(менеджера), так и для <code>EMPLOYEE</code>(сотрудника),
+ссылаются на один и тот же слот.<p>
+
+<pre>
+? (setq mgr (make-manager))
+#S(MANAGER :NAME NIL :DEPARTMENT NIL :SALARY NIL :SOCIAL-SECURITY-NUMBER NIL :TELEPHONE NIL :BONUS NIL :DIRECT-REPORTS NIL)
+
+? (setf (manager-name mgr) "Buzz")
+"Buzz"
+
+? (employee-name mgr)
+"Buzz"
+</pre> 
+
+Структура может иметь самое большее, одну опцию <code>:INCLUDE</code>. 
+Это ограничивает способность структур моделировать реальный мир, 
+описывая наследование. Объекты CLOS допускают множественное наследование 
+и имеют множество других полезных и удобных функций. Мы впервые взглянем 
+на CLOS в <a href="chapter07.html">Главе 7</a>.
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter05.html">Chapter 5</a> | Chapter 6 | <a href="chapter07.html">Chapter 7</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

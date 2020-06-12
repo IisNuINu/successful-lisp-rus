@@ -1,0 +1,338 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 32</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 32 - Темные закоулки и Диковинки</h1> 
+
+<P>
+Эта глава почти завершает наше исследование Лиспа. Здесь мы рассмотрим 
+некоторые функции Lisp, которые являются более новыми, 
+нестандартизированными, экспериментальными или спорными.
+</P>
+
+<h2>Расширенный LOOP: еще один маленький язык</h2>
+
+<p>
+В <a href="chapter05.html">Главе 5</a> описано несколько итерационных 
+форм управления: <code>DO</code>, <code>DOTIMES</code>, <code>DOLIST</code>,
+и простой <code>LOOP</code>. Мы также видели, что <code>FORMAT</code> 
+(<a href="chapter24.html">Глава 24</a>) имеет свои собственные 
+управляющие конструкции для итерации.
+
+
+<p>
+Рекурсия - это полезный инструмент для описания (и реализации) некоторых 
+алгоритмов. Но во многих случаях проще написать эффективный итерационный код,
+чем эффективный рекурсивный. В главах <a href="chapter04.html#tail-recursion">4</a> 
+и <a href="chapter28.html#efficiency">28</a> мы видели, как писать код с хвостой
+рекурсией, и узнали, что Lisp не обязательно оптимизирует хвостовые вызовы. 
+Как ни странно, итерация очень важна в этой реализации языка, изначально 
+задуманного как нотация для рекурсивных функций.
+
+<p>
+Средство расширенного цикла было введено в конце спецификации Common Lisp. 
+Расширенный цикл, как и строки управления <code>FORMAT</code>, отрывается 
+от традиции Lisp простого и последовательного синтаксиса. Расширенный цикл 
+использует ключевые слова для указания условий инициализации, действий и 
+завершения. Вот несколько примеров:
+
+<pre>
+<i>;; Sum the integers from 1 to 100</i> 
+? (loop for n from 1 to 100
+        sum n)
+5050
+
+<i>;; Compute factorial 10 iteratively</i> 
+? (loop for n from 1 to 10
+        with result = 1
+        do (setq result (* result n))
+        finally return result)
+3628800
+
+<i>;; Gather the even numbers from a list</i> 
+? (loop for item in '(1 5 8 9 7 2 3)
+        when (evenp item)
+        collect item)
+(8 2)
+</pre> 
+
+<p>
+Расширенный цикл вызывает горячие разногласия среди пользователей Lisp. 
+Его недоброжелатели указывают, что поведение недостаточно специфично 
+для сложных комбинаций вариантов, в то время как его сторонники указывают, 
+что формы расширенного цикла легче читать, чем большинство форм для простых 
+операций. Вы должны прислушаться к советам обоих лагерей: используйте 
+расширенный цикл для улучшения читаемости простых операций цикла.
+
+<h2>TAGBODY: GO если нужно</h2>
+
+<p>
+Начиная с революции структурированного программирования 1970-х годов, 
+программисты и языковые дизайнеры одинаково апологетично относились 
+к конструкции <em>GOTO</em>. Однако есть редкие случаи, когда хорошо 
+поставленный <em>GOTO</em>, используемый с тщательным рассмотрением, 
+является самым ясным способом структурировать поток управления алгоритмом.
+
+<p>
+Lisp сохраняет <em>GOTO</em> как форму <code>GO</code>,но он 
+должен использоваться в лексической области формы <code>TAGBODY</code>. 
+<code>TAGBODY</code> может содержать формы и символы Lisp. Формы 
+вычисляются, в то время как символы (которые в других формах могут 
+быть вычислены по их лексической привязке или <code>SYMBOL-VALUE</code>) 
+просто используются в качестве меток, к которым форма <code>GO</code> может 
+передать управление.
+
+<h2>Процессы и стековые группы: Манипулирование несколькими задачами</h2>
+
+<p>
+Передовые системы Lisp на выделенном оборудовании, а в последнее время и 
+на платформе Unix, реализовали функцию под названием "легковесные(lightweight) 
+процессы.- В мире С они известны как "нити(threads)".
+
+<P>
+Легковесные процессы позволяют вам писать фрагменты кода, которые 
+разделяют время процессора вместе со всеми глобальными переменными 
+в вашей среде LISP. Хотя это ограниченная форма многозадачности, 
+лишенная защиты между процессами, она очень полезна для обработки 
+вычислений, которые должны выполняться "в фоновом режиме" или в 
+ответ на асинхронные события.
+
+<p>
+В последние несколько лет недорогие системы Lisp начали включать в 
+себя технологическое оборудование. Из всех поставщиков по низкой 
+стоимости системы Лисп, Digitool был первым, которая включала процессы 
+в своем продукте. Начиная с версии 4.0/3.1, MCL включает в себя полную 
+реализацию облегченных процессов, включая полный спектр абстракций управления,
+синхронизации и коммуникации. Процессный API MCL очень близок к API, используемому 
+на машинах Lisp. Я буду использовать API MCL, чтобы проиллюстрировать остальную 
+часть этого раздела.
+
+
+<p>
+Процессы MCL полностью приоритетны - вы можете установить как приоритет, 
+так и временной срез ("Квант") для каждого процесса. Каждый процесс может 
+иметь частные переменные, просто используя локальные переменные в функции 
+запуска процесса (например, Lisp "замыкания"). Поскольку вам, вероятно, 
+также потребуется получить доступ к общим данным, средство обработки MCL 
+предоставляет блокировки ("мьютексы") для обеспечения доступа к критическим 
+данным только одним процессом одновременно; это особенно полезно, когда 
+несколько полей сложной структуры должны быть обновлены в одной операции 
+("атомарно").
+
+<a name="dining-philosophers"></a>
+
+<p>
+Следующий код реализует решение проблемы "обедающих философов" Дейкстры 
+с использованием процессов MCL и блокировок. Если вы не знакомы с этим, 
+представьте себе группу философов, сидящих за круглым столом. У каждого 
+философа есть тарелка с едой. Еда может быть съедена только в том случае, 
+если философ держит вилку в каждой руке. Между каждой парой философов 
+есть вилка, так что вилок ровно столько же, сколько и философов. Цель 
+состоит в том, чтобы заставить философов вести себя так, чтобы они все
+получили справедливый шанс поесть. Классическое решение накладывает 
+протокол на то, как приобретаются ресурсы (форки), чтобы предотвратить 
+тупик (голодание).
+
+<pre>
+(defstruct philosopher
+  (amount-eaten 0)
+  (task nil))
+
+(defmacro acquire-lock-or-skip (lock post-acquire pre-release &amp;body body)
+  `(progn
+     <i>;; Random sleep makes the output more interesting</i> 
+     <i>;; by introducing variability into the order of</i> 
+     <i>;; execution.  This is a simple way of simulating</i> 
+     <i>;; the nondeterminacy that would result from having</i> 
+     <i>;; additional processes compete for CPU cycles.</i> 
+     (sleep (random 5))
+     (unless (lock-owner ,lock)
+       (process-lock ,lock)
+       ,post-acquire
+       (unwind-protect
+         (progn ,@body)
+         ,pre-release
+         (process-unlock ,lock)))))
+
+(let ((philosophers #())
+      (philosophers-output t))
+
+  (defun dining-philosophers (number-of-philosophers &amp;optional (stream t))
+    (unless (equalp philosophers #())
+      (stop-philosophers))
+    (assert (&gt; number-of-philosophers 1) (number-of-philosophers))
+    (setq philosophers-output stream)
+    (format philosophers-output
+            "~2&amp;Seating ~D philosophers for dinner.~%"
+            number-of-philosophers)
+    (force-output philosophers-output)
+    (flet ((announce-acquire-fork (who fork)
+             (format philosophers-output 
+                     "~&amp;Philosopher ~A has picked up ~A.~%" 
+                     who (lock-name fork)))
+           (announce-release-fork (who fork)
+             (format philosophers-output 
+                     "~&amp;Philosopher ~A is putting down ~A.~%" 
+                     who (lock-name fork)))
+           (eat (who)
+             (format philosophers-output 
+                     "~&amp;Philosopher ~A is EATING bite ~D.~%"
+                     who (incf (philosopher-amount-eaten (aref philosophers who))))))
+      (flet ((philosopher-task (who left-fork right-fork)
+               (loop
+                 (acquire-lock-or-skip left-fork
+                                       (announce-acquire-fork who left-fork)
+                                       (announce-release-fork who left-fork)
+                   (acquire-lock-or-skip right-fork 
+                                         (announce-acquire-fork who right-fork)
+                                         (announce-release-fork who right-fork)
+                     (eat who)))
+                 (force-output stream)
+                 (process-allow-schedule))))
+        (let ((forks (make-sequence 'vector number-of-philosophers)))
+          (dotimes (i number-of-philosophers)
+            (setf (aref forks i) (make-lock (format nil "fork ~D" i))))
+          (flet ((left-fork (who)
+                   (aref forks who))
+                 (right-fork (who)
+                   (aref forks (mod (1+ who) number-of-philosophers))))
+            (setq philosophers (make-sequence 'vector number-of-philosophers))
+            (dotimes (i number-of-philosophers)
+              (setf (aref philosophers i)
+                    (make-philosopher
+                     :task (process-run-function (format nil "Philosopher-~D" i)
+                                                 #'philosopher-task
+                                                 i 
+                                                 (left-fork i) 
+                                                 (right-fork i)))))))))
+    (values))
+
+  (defun stop-philosophers ()
+    (dotimes (i (length philosophers))
+      (process-kill (philosopher-task (aref philosophers i))))
+    (format philosophers-output 
+            "~&amp;Dinner is finished. Amounts eaten: {~{~D~^, ~}}~2%" 
+            (map 'list #'philosopher-amount-eaten philosophers))
+    (force-output philosophers-output)
+    (setq philosophers #())
+    (values))
+  )
+</pre> 
+
+<p>
+Если вы вычисляете <code>(dining-philosophers 5)</code> и просматриваете 
+действия любого одного философа, вы увидите, что он неоднократно делает 
+одну из двух вещей:
+
+<ol>
+<li>берет вилку(левую) и снова кладет ее, потому что другая (правая) вилка была в употреблении, или
+<li>возьмите каждую вилку (левую, затем правую), ест, а затем кладет вилки.
+</ol> 
+
+<p>
+Когда вы вычисляете <code>(stop-philosophers)</code>, вы увидите список того, 
+сколько раз каждый философ ел. Эти числа будут достаточно близки друг к другу, 
+иллюстрируя справедливость алгоритма.
+
+<p>
+MCL также предоставляет абстракцию "стековой группы", которая полезна 
+для реализации сопрограмм:
+
+<pre>
+<i>;;; Main routine F-FOO</i> 
+(defun f-foo ()
+  (print 'foo-1)
+  (funcall sg-bar nil)        <i>; call 1 to coroutine</i> 
+  (print 'foo-2)
+  (funcall sg-bar nil)        <i>; call 2 to coroutine</i> 
+  (print 'foo-3)
+  (funcall sg-bar nil)        <i>; call 3 to coroutine</i> 
+  nil)
+
+<i>;;; Create a stack group for the coroutine.</i> 
+(defvar sg-bar (make-stack-group "bar"))
+
+<i>;;; Coroutine F-BAR</i> 
+(defun f-bar ()
+  (print 'bar-1)              <i>; do this for call 1</i> 
+  (stack-group-return nil)    <i>; return from call 1</i> 
+  (print 'bar-2)              <i>; do this for call 2</i> 
+  (stack-group-return nil)    <i>; return from call 2</i> 
+  (print 'bar-3)              <i>; do this for call 3</i> 
+  (stack-group-return nil)    <i>; return from call 3</i> 
+  nil)
+
+<i>;;; Initialization and startup</i> 
+(defun run-coroutines ()
+  ;; Initialize the coroutine
+  (stack-group-preset sg-bar #'f-bar)
+  ;; Start main coroutine
+  (f-foo))
+</pre> 
+
+<p>
+Когда вы запускаете основную процедуру, ее выполнение чередуется 
+с сопрограммой:
+
+<pre>
+? (run-coroutines)
+FOO-1 
+BAR-1 
+FOO-2 
+BAR-2 
+FOO-3 
+BAR-3 
+NIL
+</pre> 
+
+<p>
+Вы можете легко запускать любую функцию в рамках отдельного легковесного 
+процесса, позволяя выполнять другие вычисления, компиляцию, редактирование 
+и т. д. чтобы это просходило одновременно:
+
+<pre>
+(process-run-function "Annoy me" 
+                      #'(lambda (delay)
+                          (loop 
+                            (sleep delay)
+                            (ed-beep)))
+                      5)
+</pre> 
+
+<h2>Ряды: Еще один подход к итерации и фильтрации</h2>
+
+<p>
+Ряды были официально введены с выходом из печати 
+<a href="chapter33.html#cltl2">Common Lisp: The Language (2nd ed)</a> 
+(также известного как CLtL2), но не были приняты в качестве части 
+стандарта ANSI Common Lisp. Тем не менее, некоторые поставщики Lisp 
+включают ряды в свой продукт, потому что клиенты стали 
+зависеть от них в период между публикацией CLtL2 и спецификацией ANSI.
+
+<p>
+Ряды объединяют поведение последовательностей, потоков и циклов. 
+Используя ряды, вы можете написать итерационный код, используя 
+функциональную нотацию. Управление достигается путем выбора или 
+фильтрации элементов по мере их прохождения через ряд(<em>series</em>) 
+фильтров и операторов.
+
+
+<p>
+Лучшее место для поиска информации и примеров находится в приложении А 
+к CLtL2.
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter31.html">Chapter 31</a> | Chapter 32 | <a href="chapter33.html">Chapter 33</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

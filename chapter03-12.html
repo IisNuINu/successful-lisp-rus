@@ -1,0 +1,112 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 12</title> 
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-12">Урок 12 - Основы Макросов чтения</A></h2> 
+
+<h3>Читатель превращает символьные знаки в данные</h3> 
+
+<P>
+В <A HREF="chapter03-11.html">Уроке 11</A> мы видели, что Лисп читатель
+(reader) собирает составляющие символьные знаки в символы и числа, 
+а макрознаки управляют программой чтения для обработки списков, строк, 
+цитируемых(квотируемых) форм и комментариев. Во всех этих случаях читатель
+превращает знаки в данные. (По причинам, которые вскоре станут ясны, 
+комментарий - это просто "отсутствие данных.")
+</P>
+
+<h3>Стандартыне макросы чтения обрабатывают встроенные типы данных</h3> 
+
+<P>
+До сих пор мы видели только <EM>стандартный синтаксис</EM> для Lisp. 
+Он реализуется считывателем(reader) и контролируется <EM>readtable</EM>
+(таблицей чтения). Считыватель работает, обрабатывая знаки в соответствии
+с информацией, хранящейся в таблице чтения.
+</P>
+
+<h3>Пользовательские программы могут определять макросы считывателя(или
+макросы чтения)</h3> 
+
+<P>
+Lisp предоставляет доступ к таблице чтения через переменную 
+<CODE>*readtable*</CODE> и предоставляет несколько функций для управления
+записями в таблицах чтения. Вы можете использовать их, чтобы изменить 
+поведение считывателя Lisp. В следующем примере мы изменим синтаксис, 
+чтобы можно было писать списки в кавычках (т. е. не вычисленные) с помощью 
+ <CODE>[</CODE> и <CODE>]</CODE>.
+</P>
+
+<PRE WIDTH=80><I>;This is wrong:</I><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (1 2 3 4 5 6)<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: 1 is not a function<br><br><I>;Should have done this, instead:</I><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> '(1 2 3 4 5 6)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1 2 3 4 5 6)<br><br><I>;Define new syntax so we can write something like</I><br><I>; [1 2 3 4 5 6]</I><br><I>;instead of</I><br><I>; '(1 2 3 4 5 6)</I><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defun open-bracket-macro-character (stream char)<br>     `',(read-delimited-list #\] stream t))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> OPEN-BRACKET-MACRO-CHARACTER<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (set-macro-character #\[ #'open-bracket-macro-character)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (set-macro-character #\] (get-macro-character #\)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><I>;Now try it:</I><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> [1 2 3 4 5 6]<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1 2 3 4 5 6)</PRE>
+
+<P>
+Сначала мы попытались вычислить <CODE>(1 2 3 4 5 6)</CODE> - это неверно, 
+потому что <CODE>1</CODE> - это не функция. Что мы действительно хотели 
+сделать, так это квотированный список. Но если мы собираемся делать это часто, нам нужен более удобный синтаксис. В частности, мы хотим что бы 
+<CODE>[...]</CODE> вели себя как  <CODE>'(...)</CODE>.</P>
+
+<P>
+Чтобы сделать эту работу, мы должны определить специализированную макрофункцию
+чтения списков, которая не вычисляет свои аргументы. Мы организуем вызов функции,
+когда читатель сталкивается со знаком <CODE>[</CODE>; функция будет возвращать
+список, когда он сталкивается с символом <CODE>]</CODE>. Каждая функция макроса
+считывателя вызывается с двумя аргументами: входной поток и символьный знак,
+который вызвал вызов макроса.
+</P>
+
+<P>Наш макрос чтения очень прост, потому что Lisp имеет функцию,
+предназначенную для чтения списков с разделителями. 
+<CODE>READ-DELIMITED-LIST</CODE> ожидает один аргумент - знак, который 
+завершит чтение списка. Два других аргумента являются необязательными - 
+входной поток и флаг, который обычно устанавливается в значение
+<CODE>T</CODE> при использовании в макро-функциях считывателя. 
+<CODE>READ-DELIMITED-LIST</CODE> считывает объекты из входного потока 
+до тех пор, пока не встретит завершающий символ, а затем возвращает 
+все объекты в списке. Само по себе это делает все, что нам нужно, 
+за исключением подавления вычисления.
+</P>
+
+<P>
+<CODE>QUOTE</CODE> (или <CODE>'</CODE>) подавляет вычисление, как мы 
+видели в <A HREF="chapter03-03.html">Уроке 3</A>. Но мы не можем 
+использовать <CODE>'(READ-DELIMITED-LIST ...)</CODE>; это будет подавлять 
+вычисление формы, которую нам нужно выполнить, чтобы получить форму, 
+которую нам нужно квотировать... Вместо этого мы используем
+<CODE>`</CODE> (см. <A HREF="chapter03-08.html">Урок 8</A>), 
+чтобы требовать выборочного исполнения в цитируемой форме.
+</P>
+
+<P>Наше определение  <CODE>OPEN-BRACKET-MACRO-CHARACTER</CODE> использует</P>
+
+<PRE WIDTH=80><CODE>`',<I>form</I></CODE></PRE>
+
+<P>чтобы вычислить <I>form</I> вернуть квотированный результа.</P>
+
+Lisp резервирует шесть символов для программиста::<p>
+
+<pre>
+ [ ] { } ! ?
+</pre> 
+
+Вы можете определить любой или все из них как макросимволы, 
+не вмешиваясь в работу Lisp. Однако вам следует остерегаться конфликтов, 
+если Вы делитесь кодом с другими программистами
+<p>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-11.html">Chapter 3, Lesson 11</A> | Chapter 3, Lesson 12 | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

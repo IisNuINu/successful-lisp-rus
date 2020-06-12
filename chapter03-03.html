@@ -1,0 +1,254 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 3</title> 
+</head> 
+
+<body bgcolor="white" text="black"><h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-3">>Урок 3 - Некоторые примеры специальных форм и макросов</A></h2> 
+
+<P>
+Теперь мы рассмотрим несколько специальных форм и макросов. В течение следующих 
+четырех уроков мы создадим репертуар, который позволит вам писать простые функции,
+используя самый элементарный тип данных Lisp - список. Более поздние главы 
+будут посвящены более сложным структурам программ и типам данных.
+</P>
+
+<h3>SETQ</h3> 
+
+<P>
+Ранее я уже говорил вам, что Lisp вычисляет форму символа, извлекая его
+переменное значение. <CODE>SETQ</CODE> дает вам возможность установить 
+это значение:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq my-name "David")<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "David"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> my-name<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "David"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a-variable 57)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 57<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a-variable<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 57<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a-variable :a-keyword)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :A-KEYWORD</PRE>
+
+<P>
+Первый аргумент <CODE>SETQ</CODE> - это символ. Он не вычисляется. 
+Второй аргумент присваивается в качестве значения переменной. 
+<CODE>SETQ</CODE> возвращает значение своего последнего аргумента.
+</P>
+
+<BLOCKQUOTE>
+<CODE>SETQ</CODE> не вычисляет свой первый аргумент, потому что вы хотите 
+присвоить значение самому символу. Если <CODE>SETQ</CODE> вычисляет свой 
+первый аргумент, то <EM>значение</EM> этого аргумента должно быть символом. 
+Это делает форма <CODE>SET</CODE>. Обратите особое внимание на разницу между 
+формами <CODE>SET</CODE> и <CODE>SETQ</CODE> в следующем примере и убедитесь, что вы понимаете, что происходит с формой <CODE>(set var-1 99)</CODE> :
+
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq var-1 'var-2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> VAR-2<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> var-1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> VAR-2<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> var-2<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: Unbound variable<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (set var-1 99)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 99<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> var-1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> VAR-2<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> VAR-2<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 99</PRE>
+
+<P>
+Вы обратили внимание на <CODE>'</CODE> в первой форме? Она(кавычка) 
+удерживает следующую форму <CODE>var-2</CODE> от вычисления. 
+Позже в этом уроке, когда мы рассмотрим <A HREF="#quote"><CODE>QUOTE</CODE></A>, 
+я объясню ее более подробно.
+</P>
+
+<P>
+В этом примере мы сначала делаем значением <CODE>VAR-1</CODE>  
+<EM>символом(symbol)</EM> <CODE>VAR-2</CODE>.  Проверяя значение
+<CODE>VAR-2</CODE>, мы обнаруживаем, что он(символ) не имеет никакого
+значения.  Затем мы используем <CODE>SET</CODE> (а не <CODE>SETQ</CODE>) 
+чтобы присвоить значение <CODE>99</CODE> символу <CODE>VAR-2</CODE>, который
+является <EM>значением</EM> для символа <CODE>VAR-1</CODE>.
+</P>
+
+</BLOCKQUOTE>
+
+<P>
+Форма <CODE>SETQ</CODE> фактически может принимать любое четное 
+число аргументов, которые должны быть чередующимся символами и значениями:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq month "June" day 8 year 1954)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1954<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> month<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "June"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> day<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;|" ALIGN="BOTTOM"> 8<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> year<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1954</PRE>
+
+<P>
+<CODE>SETQ</CODE> выполняет присваивания слева направо и возвращает 
+самое правое значение.
+</P>
+
+<h3>LET</h3> 
+
+<P>
+Форма <CODE>LET</CODE> выглядит немного сложнее, чем те, которые мы видели 
+до сих пор. Форма <CODE>LET</CODE> использует вложенные списки, но поскольку 
+это специальная форма, вычисляются только определенные элементы.
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a 3)<br>        (b 4)<br>        (c 5))<br>    (* (+ a b) c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 35<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: Unbound variable<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> b<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: Unbound variable<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> c<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: Unbound variable</PRE>
+
+<P>
+Приведенная выше форма <CODE>LET</CODE> определяет значения для символов 
+<CODE>A</CODE>, <CODE>B</CODE> и <CODE>C</CODE>, а затем использует их 
+в качестве переменных в арифметическом вычислении. Результат вычисления 
+также является и результатом формы <CODE>LET</CODE>. Обратите внимание, 
+что ни одна из переменных, определенных в <CODE>LET</CODE>, не имеет 
+значения после того, как Lisp закончил вычисление формы.
+</P>
+
+<P>
+В общем, <CODE>LET</CODE> выглядит так:
+</P>
+
+<PRE WIDTH=80>(let (<VAR>bindings</VAR>) <VAR>forms</VAR>)</PRE>
+
+<P>
+где <VAR>bindings</VAR>-это любое количество двухэлементных списков , 
+каждый из которых содержит символ и значение , а <VAR>forms</VAR> - 
+любое количество форм Lisp. Формы вычисляются по порядку, используя 
+значения, установленные привязками. <CODE>LET</CODE> возвращает 
+значение(я), возвращенное последней формой.
+</P>
+
+<P>
+Отступ не влияет на работу <CODE>LET</CODE>, но правильные отступы улучшает читабельность. Рассмотрим эти эквивалентные формы:
+</P>
+
+<PRE WIDTH=80>(let ((p 52.8)
+      (q 35.9)
+      (r (f 12.07)))
+  (g 18.3)
+  (f p) 
+  (f q) 
+  (g r t))
+
+(let ((p 52.8) (q 35.9) (r (f 12.07))) (g 18.3) (f p) (f q) (g r t))</PRE>
+
+<P>
+В первом случае отступ делает ясным, какие из элементов являются привязками, 
+а какие-формами. Даже если читатель не знает о различных ролях, которые играют 
+две части формы <CODE>LET</CODE>, отступ предполагает разницу.
+</P>
+
+<P>
+Во втором случае вам придется считать скобки, чтобы узнать, 
+где заканчиваются привязки и начинаются формы. Еще хуже то, 
+что отсутствие отступа разрушает визуальные подсказки о 
+различных ролях, которые играют две части формы <CODE>LET</CODE>.
+</P>
+
+<P>
+Если вы определяете переменную с помощью <CODE>SETQ</CODE>, а затем 
+используете ту же переменную в форме <CODE>LET</CODE>, то значение, 
+определенное <CODE>LET</CODE>, заменяет(затеняет) другое значение во время 
+вычисления <CODE>LET</CODE>:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a 89)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 89<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 89<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a 3))<br>    (+ a 2))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 5<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 89</PRE>
+
+<P>
+В отличие от <CODE>SETQ</CODE>, который присваивает значения в порядке 
+слева направо, <CODE>LET</CODE> связывает переменные все одновременно:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq w 77)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 77<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((w 8)<br>        (x w))<br>    (+ w x))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 85</PRE>
+
+<P><CODE>LET</CODE> привязывает <CODE>W</CODE> к <CODE>8</CODE> и <CODE>X</CODE> 
+к <CODE>W</CODE>. Поскольку эти привязки происходили одновременно, <CODE>W</CODE> 
+все еще имел свое первоначальное значение <CODE>77</CODE>.</P>
+
+<BLOCKQUOTE>
+Лисп имеет вариацию <CODE>LET</CODE>, называемую <CODE>LET*</CODE>, 
+которая выполняет привязки по порядку(последовательно):
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq u 37)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 37<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let* ((v 4)<br>         (u v))<br>    (+ u v))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 8</PRE>
+
+</BLOCKQUOTE>
+
+<h3>COND</h3> 
+
+<P>
+Макрос <CODE>COND</CODE> позволяет вычислять формы Lisp условно. 
+Как и <CODE>LET</CODE>, <CODE>COND</CODE> использует круглые скобки для 
+разграничения различных частей формы. Рассмотрим эти примеры:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a 1)<br>        (b 2)<br>        (c 1)<br>        (d 1))<br>    (cond ((eql a b) 1)<br>          ((eql a c) "First form" 2)<br>          ((eql a d) 3)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 2</PRE>
+
+<P>
+В приведенной выше форме <CODE>COND</CODE> мы определили три предложения. 
+Каждое предложение представляет собой список, начинающийся с тестовой формы 
+сопровождаемой таким количеством форм тела, сколько необходимо. Формы тела - 
+это просто код, который вы хотите выполнить, если тест пройдет успешно. 
+Предложения выбираются по порядку - как только один тест проходит успешно, 
+соответствующие формы тела вычисляются и значение последней формы тела 
+становится значением формы <CODE>COND</CODE>.
+</P>
+
+<BLOCKQUOTE>
+<CODE>COND</CODE> является более общей, чем специальная форма <CODE>IF</CODE>, 
+которая допускает только один тест и по одной форме для частей  <VAR>then</VAR> и 
+<VAR>else</VAR>.
+</BLOCKQUOTE>
+
+<P>
+Давайте посмотрим, что произошло в этом примере. <CODE>EQL</CODE> возвращает T, 
+если два его аргумента идентичны или имеют одинаковое число 
+(есть тонкое различие, которое мы рассмотрим в <A HREF="chapter17.html">Главе 17</A>). Только два из трех тестов были выполнены. Первый, <CODE>(EQL A B)</CODE>, вернул NIL.
+Поэтому остальная часть этого предложения (содержащая число 1 как его единственную форму) была пропущена. Вторая проверка <CODE>(EQL A C)</CODE>, возвращает истину. 
+Поскольку этот тест возвращает не <CODE>NIL</CODE> значение, вычисляется 
+остальная часть  предложения  (две атомарные формы, <CODE>"First form"</CODE> и 
+<CODE>2</CODE>), и значение последней формы было возвращено как значение 
+<CODE>COND</CODE>, которое затем было возвращено как значение заключающего 
+<CODE>LET</CODE>. 
+Третье предложение никогда не проверялось, так как более раннее предложение уже было выбрано, а предложения проверяются по порядку.
+</P>
+
+<P>
+Обычное использование <CODE>COND</CODE> использует <CODE>T</CODE> в качестве 
+тестовой формы в заключительном предложении. Это гарантирует, что формы тела
+заключительного предложения будут выполнены, если тесты не пройдут во всех 
+других предложениях. Вы можете использовать последнее предложение для 
+возврата значения по умолчанию или выполнения какой-либо соответствующей операции. 
+Вот вам пример:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a 32))<br>    (cond ((eql a 13) "An unlucky number")<br>          ((eql a 99) "A lucky number")<br>          (t "Nothing special about this number")))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "Nothing special about this number"</PRE>
+
+<h3><A NAME="quote">QUOTE</A></h3> 
+
+<P>
+Иногда мы хотели бы подавить нормальные правила вычисления Lisp. Один из 
+таких случаев - когда мы этого хотели бы, чтобы возвращался символ,
+а не его значение, когда он появляется в качестве аргумента вызова функции:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a 97)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 97<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 97<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq b 23)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 23<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a b)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 23<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 23<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a (quote b))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> B<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> B</PRE>
+
+<P>
+Разница заключается в том, что в <CODE>(SETQ A B)</CODE> используется 
+<EM>значение</EM> <CODE>B</CODE>, тогда как в <CODE>(SETQ A (QUOTE B))</CODE>,
+где <CODE>B</CODE> обозначает сам себя.
+</P>
+
+<P>
+Форма <CODE>QUOTE</CODE> настолько часто используется, что Lisp 
+предоставляет сокращенную нотацию:
+</P>
+
+<PRE WIDTH=80>(QUOTE <VAR>form</VAR>) <IMG SRC="gifs/equivalent.gif" ALT="eqv" ALIGN="BOTTOM"> '<VAR>form</VAR></PRE>
+
+<P>
+Символ <IMG SRC="gifs/equivalent.gif" ALT="eqv" ALIGN="BOTTOM"> означает, 
+что две формы Lisp эквивалентны. Lisp организует эквивалентность <CODE>'</CODE>
+и <CODE>QUOTE</CODE> через макрос чтения. Мы кратко рассмотрим, как вы 
+можете определить свои собственные макросы чтения в 
+<A HREF="chapter03-12.html">Уроке 12</A>.</P>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-02.html">Chapter 3, Lesson 2</A> | Chapter 3, Lesson 3 | <A HREF="chapter03-04.html">Chapter 3, Lesson 4</A> | <a href="chapter04.html">Chapter 4</a>
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

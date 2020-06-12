@@ -1,0 +1,597 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 10</title> 
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-10">Урок 10 - Обзор других типов данных</A></h2> 
+
+<h3>Лисп почти всегда правильно работает с числами</h3> 
+
+<P>Это звучит странно, если это сказать. Разве компьютеры не всегда правильно обращаются с цифрами? Оказывается нет... Как правило, нет..</P>
+
+<P>Числовые вычисления могут искажаться множеством различных способов. 
+Одна из самых больших проблем заключается в вычислениях с числами с 
+плавающей запятой (ваш язык может называть их  <I>real</I> реальными числами, но это ложь).
+Существует, вероятно, вдвое меньше книг, написанных о правильном использовании
+вычислений с плавающей запятой, чем о визуальном-или чём-то объектно-ориентированном, и это очень много.</P>
+
+<P>Проблема с числами с плавающей запятой заключается в том, что они не
+являются математически точными вещественными числами, но часто
+(и неправильно) используются так, как будто они есть. Основная проблема
+заключается в том, что числа с плавающей запятой имеют ограниченную точность-
+только несколько цифр справа от десятичной точки. Теперь, если все числа в
+вычислении имеют приблизительно одинаковую величину, то вычисление не потеряет
+точности. Но если эти числа имеют сильную разницу по величине, то вычисление с
+плавающей точкой приносит в жертву точность.</P>
+
+<BLOCKQUOTE>
+Предположим, что число с плавающей запятой на вашем компьютере имеет точность
+представления 7 десятичных цифр. Затем вы можете добавить 1897482.0 к 2973225.0
+и получить совершенно точный ответ. Но если вы попытаетесь добавить 1897482.0 к 0.2973225, точный ответ будет состоять из четырнадцати цифр, в то время как ваш компьютер ответит: 1897482.0.
+</BLOCKQUOTE>
+
+<P>Другая проблема с числами с плавающей запятой является более тонкой. 
+Когда вы пишете программу, вы пишете числа в базе 10. Но компьютер делает
+всю арифметику в базе 2. Преобразование из базы 10 в базу 2 делает
+забавные вещи с определенными "очевидно точными" числами. Например, 
+десятичное число 0.1 является повторяющейся дробью при переводе в 
+двоичный код. Поскольку компьютер не может хранить бесконечное 
+число цифр, требуемое повторяющейся дробью, он не может хранить 
+число 0.1 точно.</P>
+
+<P>Целочисленная арифметика (целые числа) создает еще одну проблему в
+большинстве компьютерных языков - они имеют тенденцию накладывать 
+ограничение на максимальное положительное или отрицательное значение,
+которое может содержать целое число. Итак, если вы попытаетесь добавить 
+число один к самому большому целому числу, которое ваш язык позволяет
+обрабатывать компьютеру, произойдет одно из двух:
+</P>
+
+<OL>
+<LI>ваша программа завершится с ошибкой, или</LI>
+<LI>вы получите совершенно неверный ответ (Самое большое положительное 
+число плюс один дает самое большое отрицательное целое число по крайней 
+мере в одном компьютерном языке).</LI>
+</OL>
+
+<P>Так как же Лиспу удается делать правильные вещи с числами? 
+В конце концов, похоже, что эти проблемы присущи всей компьютерной арифметике.
+Ответ заключается в том, что Lisp не использует только встроенные в 
+компьютер арифметические операции - он добавляет определенные 
+математически точные числовые типы данных:</P>
+
+<UL>
+<LI><EM>bignums</EM> это целые числа с неограниченным количеством цифр 
+(при условии ограничения только памяти компьютера)</LI>
+<LI><EM>rational numbers</EM>(рациональные числа) - это точное частное от 
+двух целых чисел, а не число с плавающей запятой, полученное в результате
+приближенного алгоритма машинного деления</LI>
+</UL>
+
+<P>
+Конечно, Лисп также имеет машинные целые числа и числа с плавающей запятой.
+Машинные целые числа в Lisp называются <EM>fixnums</EM>(фиксированными)
+числами. До тех пор, пока целое число попадает в числовой диапазон fixnum, 
+Lisp будет хранить его как машинное целое число. Но если он становится 
+слишком большим, Lisp автоматически переводит его в bignum.
+</P>
+
+<P>
+Когда я сказал, что Lisp почти всегда делает правильные вещи с числами, 
+я имел в виду, что он <EM>почти всегда</EM> выбирает числовое представление, 
+которое является математически правильным:
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (/ 1 3)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1/3<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (+ (/ 7 11) (/ 13 31))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 360/341<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defun factorial (n)<br>     (cond ((= n 0) 1)<br>           (t (* n (factorial (- n 1))))))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> FACTORIAL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (factorial 100)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 933262154439441526816992388562667004907159682643816214685<br>   929638952175999932299156089414639761565182862536979208272<br>   23758251185210916864000000000000000000000000</pre>
+
+<P>
+Вы можете написать вычисления, чтобы использовать числа с плавающей запятой,
+но Lisp не будет автоматически превращать точный числовой результат в 
+неточное число с плавающей запятой - вы должны попросить его. Числа 
+с плавающей запятой <EM>contagious/заразны</EM> - как только вы вводите 
+их в расчет, результат всего расчета остается числом с плавающей запятой:
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (float (/ 1 3))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 0.3333333333333333<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (* (float (/ 1 10)) (float (/ 1 10)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 0.010000000000000002<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (+ 1/100 (* (float (/ 1 10)) (float (/ 1 10))))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 0.020000000000000004<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (+ 1/100 1/100) <EM>; compare to previous calculation</EM><br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1/50<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (* 3 7 10.0)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 210.0<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (- 1.0 1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 0.0<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (+ 1/3 2/3 0.0)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1.0<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (+ 1/3 2/3)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1 <EM>; compare to previous calculation</EM></pre>
+
+<P>Lisp печатает числа с плавающей запятой с десятичной запятой, а 
+целые числа без нее</P>
+
+<h3><A NAME="characters">(Characters)Символьные знаки позволяют 
+Лиспу что либо читать и писать</A></h3> 
+
+<P>
+Базовый ввод/вывод Лиспа использует символьные знаки. Функции чтения 
+и записи превращают знаки в объекты Lisp и наоборот. <CODE>READ-CHAR</CODE>
+и <CODE>WRITE-CHAR</CODE> читают и записывают одиночные знаки.
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (read)<br><IMG SRC="gifs/dot.gif" ALT="?" ALIGN="BOTTOM"> a<IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> A<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (read)<br><IMG SRC="gifs/dot.gif" ALT="??" ALIGN="BOTTOM"> #\a<IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> a<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (read-char)<br><IMG SRC="gifs/dot.gif" ALT="??" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #\a<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (write 'a)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> A<br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> A<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (write #\a)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> #\a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #\a<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (write-char #\a)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #\a<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (write-char 'a)<br><IMG SRC="gifs/right-arrow-bar.gif" ALT="-&gt;|" ALIGN="BOTTOM"> Error: Not a character</pre>
+
+<P>
+Мы ввели некоторые новые обозначения в вышеприведенных примерах. Какие? 
+Знак <IMG SRC="gifs/dot.gif" ALT="?" ALIGN="BOTTOM"> означает, что Lisp
+ожидает ввода в ответ на функцию ввода, такую как <CODE>READ</CODE>. 
+Он немного отличается от 
+<IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM">, который принимает
+входные данные для вычисления и печати. Знак
+<IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM"> указывает на знак 
+новой строки, генерируемый клавишей <KBD>return</KBD> или <KBD>enter</KBD>.
+</P>
+
+<P>
+Знак <IMG SRC="gifs/double-right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM">
+указывает на вывод, который печатается, а не возвращается в виде значения.
+</P>
+
+<P>
+Вы должны заметить, что новая строка завершает ввод данных для 
+<CODE>READ</CODE>. Это происходит потому, что <CODE>READ</CODE> 
+собирает символьные знаки, пытаясь сформировать полное выражение Lisp.
+Подробнее об этом мы поговорим в <A HREF="chapter03-11.html">Уроке 11</A>. 
+В этом примере <CODE>READ</CODE> собирает символ, который заканчивается 
+знаком новой строки. Символ также может заканчиваться пробелом, скобкой 
+или любым другим знаком, который не может быть частью символа.
+</P>
+
+<P>
+Напротив, <CODE>READ-CHAR</CODE> считывает ровно один знак из входных данных.
+Как только этот знак получен, <CODE>READ-CHAR</CODE> завершает выполнение и возвращает символьный знак.
+</P>
+
+<BLOCKQUOTE>
+Некоторые системы Lisp могут потребовать, чтобы вы нажали клавишу 
+<KBD>return</KBD>, прежде чем какой-либо ввод будет распознан. 
+Это необычно, и часто может быть исправлено с помощью параметра 
+конфигурации - обратитесь к поставщику Lisp.
+</BLOCKQUOTE>
+
+<P>
+<CODE>WRITE</CODE> и <CODE>WRITE-CHAR</CODE> оба возвращают полученное
+значение. Но способ, которым они печатают значение, отличается. 
+<CODE>WRITE</CODE> печатает значение так, чтобы оно могло быть 
+представлено для <CODE>READ</CODE>, чтобы он мог создать то же самое значение. 
+<CODE>WRITE-CHAR</CODE> печатает только читаемый символьный знак, 
+без дополнительного синтаксиса Lisp <CODE>#\</CODE>), который 
+идентифицировал бы его для <CODE>READ</CODE> как символьный знак.
+</P>
+
+<P>
+Lisp представляет один символьный знак, используя обозначение 
+<CODE>#\<I>char</I></CODE>, где <I>char</I> - это литеральный символьный
+знак или имя символьного знака, который не имеет печатаемого глифа(изображения).
+</P>
+
+<pre>
+Character           Hex Value   Lisp           Standard?
+--------------------------------------------------------
+  space                 20      #\Space          yes
+  newline               --      #\Newline        yes
+  backspace             08      #\Backspace      semi
+  tab                   09      #\Tab            semi
+  linefeed              0A      #\Linefeed       semi
+  formfeed              0C      #\Page           semi
+  carriage return       0D      #\Return         semi
+  rubout or DEL         7F      #\Rubout         semi
+</pre>
+
+<P>
+Только <CODE>#\Space</CODE> и <CODE>#\Newline</CODE> требуются во 
+всех системах Lisp. Системы, использующие набор символьных знаков ASCII,
+вероятно, реализуют и остальные коды символьных знаков, показанные выше.
+</P>
+
+<P>
+Имя символьного знака <CODE>#\Newline</CODE> обозначает любое соглашение,
+представляющее собой конец печатной строки на хост-системе, например:
+</P>
+
+<pre>
+System        Newline     Hex Value
+-----------------------------------
+Macintosh       CR          0D
+MS-DOS          CR LF       0D 0A
+Unix            LF          0A
+</pre>
+
+<P>94 печатаемых стандартных символа представлены следующим 
+образом: #\<I>char</I>:</P>
+
+<pre>
+  ! " # $ % & ' ( ) * + , - . / 
+0 1 2 3 4 5 6 7 8 9 : ; &lt; = &gt; ? 
+@ A B C D E F G H I J K L M N O 
+P Q R S T U V W X Y Z [ \ ] ^ _ 
+` a b c d e f g h i j k l m n o 
+p q r s t u v w x y z { | } ~
+</pre>
+
+<h3>Массивы организуют данные в таблицы</h3> 
+
+<P>Если вам нужно организовать данные в таблицах двух, трех или более измерений, вы можете создать массив:
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq a1 (make-array '(3 4)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #2A((NIL NIL NIL NIL) <br>      (NIL NIL NIL NIL) <br>      (NIL NIL NIL NIL))<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref a1 0 0) (list 'element 0 0))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (ELEMENT 0 0)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref a1 1 0) (list 'element 1 0))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (ELEMENT 1 0)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref a1 2 0) (list 'element 2 0))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (ELEMENT 2 0)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #2A(((ELEMENT 0 0) NIL NIL NIL) <br>      ((ELEMENT 1 0) NIL NIL NIL) <br>      ((ELEMENT 2 0) NIL NIL NIL))<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (aref a1 0 0)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (ELEMENT 0 0)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref a1 0 1) pi)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 3.141592653589793<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref a1 0 2) "hello")<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "hello"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (aref a1 0 2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "hello"</pre>
+
+<P>
+Вы создаете массив с помощью <CODE>MAKE-ARRAY</CODE>, который принимает 
+список измерений и возвращает массив. По умолчанию массив может содержать 
+любые типы данных; необязательные аргументы позволяют ограничить типы 
+данных элементов для повышения эффективности.
+</P>
+
+<P>
+Ранг(<EM>rank</EM>) массива совпадает с его количеством измерений. 
+В приведенном выше примере мы создали массив ранга-2. Lisp печатает 
+массив, используя обозначение <CODE>#<I>rank</I>A(...)</CODE>. 
+Содержимое массива отображается в виде вложенных списков, причем 
+первое измерение отображается как самая внешняя группировка, 
+а последнее измерение - как элементы самой внутренней группировки.
+</P>
+
+<BLOCKQUOTE>
+Ваша система Lisp, вероятно, не будет печатать массив с разрывами строк, 
+как я показал здесь. Я добавил эти разрывы, чтобы подчеркнуть структуру 
+массива.
+</BLOCKQUOTE>
+
+<P>
+Чтобы извлечь элемент массива, используйте <CODE>AREF</CODE>. 
+Первым аргументом <CODE>AREF</CODE> является массив; остальные аргументы
+определяют индекс вдоль каждого измерения. Количество индексов должно
+соответствовать рангу массива.
+</P>
+
+<P>
+Чтобы задать значение элемента массива, используйте <CODE>AREF</CODE> 
+внутри формы <CODE>SETF</CODE>, как показано в Примере. 
+Чтение аналогично <CODE>SETQ</CODE>, кроме случаев, когда <CODE>SETQ</CODE>
+присваивает значение <EM>символу</EM>, <CODE>SETF</CODE> присваивает 
+значение <EM>месту/place</EM>. В примерах форма <CODE>AREF</CODE> 
+указывает место в качестве элемента массива.
+</P>
+
+<h3>Векторы - это одномерные массивы</h3> 
+
+<P>
+Векторы - это одномерные массивы. Вы можете создать вектор с помощью 
+<CODE>MAKE-ARRAY</CODE> и получить доступ к его элементам с помощью 
+<CODE>AREF</CODE>.
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq v1 (make-array '(3)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(NIL NIL NIL)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (make-array 3)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(NIL NIL NIL)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref v1 0) :zero)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :ZERO<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (aref v1 1) :one)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :ONE<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (aref v1 0)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :ZERO<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> v1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(:ZERO :ONE NIL)</pre>
+
+<P>Lisp печатает векторы, используя слегка сокращенную форму 
+<CODE>#(...)</CODE>, а не  <CODE>#1A(...)</CODE>.</P>
+
+<P>
+Вы можете использовать либо одноэлементный список, либо число, 
+чтобы указать векторные размеры для <CODE>MAKE-ARRAY</CODE> - 
+эффект тот же.
+</P>
+
+<P>
+Вы можете создать вектор из списка значений, используя форму <CODE>VECTOR</CODE>:
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (vector 34 22 30)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(34 22 30)</pre>
+
+<P>
+Это похоже на форму <CODE>LIST</CODE>, за исключением того, что 
+результатом является вектор, а не список. Есть и другие сходства между 
+списками и векторами: оба являются <EM>sequences/последовательностями</EM>.
+Последовательностями управляют функции, которые мы увидим в 
+<A HREF="chapter13.html">Главе 13</A>.
+</P>
+
+<P>
+Вы можете использовать <CODE>AREF</CODE> для доступа к элементам вектора 
+или использовать функцию, зависящую от последовательности, <CODE>ELT</CODE>:
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf v2 (vector 34 22 30 99 66 77))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(34 22 30 99 66 77)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (elt v2 3) :radio)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :RADIO<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> v2<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #(34 22 30 :RADIO 66 77)</pre>
+
+<h3>Строки-это векторы, содержащие только знаковые символы(character)</h3> 
+
+<P>
+Вы уже знаете, как написать строку с помощью синтаксиса двойных кавычек
+<CODE>"..."</CODE>.
+Поскольку строка является вектором, вы можете применить функции массива и
+вектора для доступа к элементам строки. Вы также можете создавать строки с
+помощью функции <CODE>MAKE-STRING</CODE> или изменять символы или знаки на 
+строки с помощью функции <CODE>STRING</CODE>.
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq s1 "hello, there.")<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "hello, there."<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (elt s1 0) #\H))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #\H<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (elt s1 12) #\!)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #\!<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> s1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "Hello, there!"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (string 'a-symbol)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "A-SYMBOL"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (string #\G)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> "G"</pre>
+
+<h3>Символы уникальны, но они имеют много значений</h3> 
+
+<P>
+Мы видели в <A HREF="chapter03-05.html">Уроке 5</A>, что символ имеет
+уникальную идентичность, но когда он вновь встречается: символ идентичен
+любому другому символу, написанному таким же образом (включая название
+его пакета(package), о котором мы узнаем больше в конце этого урока). 
+Это означает, что вы можете заставить Lisp читать программу или данные, 
+и каждое появление символа с одинаковым написанием является одним и тем же
+символом. Поскольку Lisp предоставляет механизм для этого, это еще одна 
+вещь, о которой вам нужно беспокоиться, когда вы пишете программу, которая
+манипулирует </EM>символьной</EM> информацией
+</P>
+
+<P>
+В <A HREF="chapter03-05.html">Уроке 5</A> мы также узнали, что символ может
+иметь значения в виде переменной и функции, а также для документации, 
+печатного имени и свойств. <A NAME="property-list">Список свойств символа
+подобен миниатюрной базе данных, которая связывает несколько пар 
+ключ/значение с символом. Например, если ваша программа представляет объекты 
+и управляет ими, вы можете хранить информацию об объекте в списке его свойств:
+</A></P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (get 'object-1 'color) 'red)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> RED<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (get 'object-1 'size) 'large)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> LARGE<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (get 'object-1 'shape) 'round)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> ROUND<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (get 'object-1 'position) '(on table))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (ON TABLE)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (get 'object-1 'weight) 15)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 15<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (symbol-plist 'object-1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (WEIGHT 15 POSITION (ON TABLE) SHAPE ROUND SIZE LARGE <br>     COLOR RED)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (get 'object-1 'color)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> RED<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> object-1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> Error: no value<br></pre>
+
+<P>
+Обратите внимание, что <CODE>OBJECT-1</CODE> не имеет значения - вся полезная
+информация находится в двух местах: <EM>identity</EM>(идентичности символа) и
+свойствах символа.
+</P>
+
+<BLOCKQUOTE>
+Такое использование свойств предшествовало современному объектному
+программированию на несколько десятилетий. Оно обеспечивало два из трех 
+основных механизмов объектов: идентификацию и инкапсуляцию (помните, что
+значения свойств могут также быть функцией). Третий механизм, наследование,
+иногда моделировался ссылками на другие "объекты".
+</BLOCKQUOTE>
+
+<P>
+Свойства всё реже используются в современных программах Lisp. Хэш-таблицы 
+(<A HREF="#hash-tables">см.ниже)</A>), структуры (описанные в следующем
+разделе) и объекты CLOS (см. <A HREF="chapter07.html">Главу 7</A> и 
+<A HREF="chapter14.html">Главу 14</A>) обеспечивают все возможности 
+списков свойств более простыми и эффективными способами. Современные системы
+разработки Lisp часто используют свойства для аннотирования программы,
+отслеживая определенную информацию, такую как файл и положение файла
+определяющей формы для символа, а также определение списка аргументов 
+функции (для использования информационными средствами в среде 
+программирования).
+</P>
+
+<h3><A NAME="structures">Структуры позволяют хранить связанные данные
+</A></h3> 
+
+<P>Структура Lisp позволяет создать объект, который хранит связанные данные в именованных слотах.
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defstruct struct-1 color size shape position weight)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> STRUCT-1<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq object-2 (make-struct-1<br>                     :size 'small <br>                     :color 'green <br>                     :weight 10 <br>                     :shape 'square))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #S(STRUCT-1 :COLOR GREEN :SIZE SMALL :SHAPE SQUARE <br>     :POSITION NIL :WEIGHT 10)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (struct-1-shape object-2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> SQUARE<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (struct-1-position object-2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (struct-1-position object-2) '(under table))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (UNDER TABLE)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (struct-1-position object-2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (UNDER-TABLE)</pre>
+
+<P>
+В этом примере мы определили тип структуры с именем <CODE>STRUCT-1</CODE>
+и слотами с именами <CODE>COLOR</CODE>, <CODE>SHAPE</CODE>, <CODE>SIZE</CODE>, 
+<CODE>POSITION</CODE>, and <CODE>WEIGHT</CODE>. Затем мы создали экземпляр 
+типа <CODE>STRUCT-1</CODE> и присвоили его переменной <CODE>OBJECT-2</CODE>. 
+В остальной части примера показано, как получить доступ к слотам экземпляра
+структуры с помощью функций доступа, названных по типу структуры и имени слота. Lisp генерирует функции make-<I>structname</I> и 
+<I>structname</I>-<I>slotname</I> при определении структуры с помощью
+<CODE>DEFSTRUCT</CODE>.
+</P>
+
+<P>
+Мы рассмотрим дополнительные функции <CODE>DEFSTRUCT</CODE> в 
+<A HREF="chapter06.html">Глава 6</A>.
+</P>
+
+<h3>Информация о типе является видной во время выполнения</h3> 
+
+<P>Символ может быть связан с любым типом значения во время выполнения. 
+В тех случаях, когда он имеет значение, Lisp позволяет запрашивать тип значения.</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (type-of 123)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> FIXNUM<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (type-of 123456789000)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> BIGNUM<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (type-of "hello, world")<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (SIMPLE-BASE-STRING 12)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (type-of 'fubar)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> SYMBOL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (type-of '(a b c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> CONS</pre>
+
+<P><CODE>TYPE-OF</CODE> возвращает символ или список, указывающий тип 
+его аргумента. Затем эта информация может быть использована для 
+руководства поведением программы в зависимости от типа ее аргументов. 
+Функция <CODE>TYPECASE</CODE> объединяет запрос о типе с диспетчеризацией,
+похожей на <CODE>COND</CODE>.
+</P>
+
+<BLOCKQUOTE>
+С введением обобщенных функций в CLOS (см. 
+<A HREF="chapter14.html">Главу 14</A>), <CODE>TYPE-OF</CODE> уже не так важен, как раньше.
+</BLOCKQUOTE>
+
+<h3><A NAME="hash-tables">Хеш-таблицы обеспечивают быстрый доступ к данным по ключу поиска.</A></h3> 
+
+<P>
+Хэш-таблица связывает значение с уникальным ключом. В отличие от списка
+свойств(<A HREF="#property-list">property list</A>), хэш-таблица хорошо
+подходит для большого числа пар ключ/значение, но страдает от чрезмерных
+накладных расходов для небольших наборов ассоциаций.
+</P>
+
+<pre width=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq ht1 (make-hash-table))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #&lt;HASH-TABLE&gt;<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (gethash 'quux ht1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (gethash 'baz ht1) 'baz-value)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> BAZ-VALUE<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (gethash 'baz ht1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> BAZ-VALUE<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setf (gethash 'gronk ht1) nil)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (gethash 'gronk ht1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T</pre>
+
+<P>
+Вы создаете хэш-таблицу с помощью <CODE>MAKE-HASH-TABLE</CODE> и получаете
+доступ к значениям с помощью <CODE>GETHASH</CODE>. <CODE>GETHASH</CODE>
+возвращает два значения. Первое - это значение, связанное с ключом. Второе -
+это <CODE>T</CODE>, если ключ был найден, и <CODE>NIL</CODE> в противном
+случае. Обратите внимание на разницу между первой и последней формой 
+<CODE>GETHASH</CODE> в приведенных выше примерах.
+</P>
+
+<P>
+По умолчанию хэш-таблица создается так, что ее ключи сравниваются с помощью <EM>EQ</EM>-это работает для символов, но не для чисел или списков. 
+Подробнее о предикатах равенства мы поговорим в 
+<A HREF="chapter17.html">Главе 17</A>. А пока просто помните, что если вы
+хотите использовать числа для ключей, вы должны создать хэш-таблицу с помощью
+формы:
+</P>
+
+<p><tt>(make-hash-table :test #'eql)</tt>
+
+<p>Если вы хотите использовать списки для ключей, создайте свою хэш-таблицу с
+помощью:
+
+<p><tt>(make-hash-table :test #'equal)</tt>
+
+<P>
+Если вы хотите удалить ключ, используйте форму 
+<CODE>(REMHASH <VAR>key</VAR> <VAR>hash-table</VAR>)</CODE>. И если вы 
+хотите изменить значение ключа, используйте <CODE>GETHASH</CODE> с
+<CODE>SETF</CODE>, как если бы вы добавляли новую пару ключ / значение.
+</P>
+
+<h3>Пакты защищают от совпадения имен</h3> 
+
+<P>
+Одна из самых сложных вещей при написании программ-это присвоение имен частям
+вашей программы. С одной стороны, вы хотите использовать имена, которые легко
+запоминаются и напоминают о роли или назначении именованного объекта. С другой
+стороны, вы не хотите использовать имя, которое кто-то уже использовал 
+(или, скорее всего, будет использовать) в другой программе, которую вам,
+возможно, когда-нибудь придется заставить работать с вашей программой.
+</P>
+
+<P>Один из способов избежать конфликтов имен - дать каждому имени в вашей
+программе уникальный префикс, который вряд ли кто-либо будет использовать. 
+Вы видите, что это делается все время с библиотеками - префикс обычно
+составляет от одного до трех символов. К сожалению, это все еще оставляет много
+места для двух разработчиков программного обеспечения, чтобы выбрать один и тот
+же префикс; тем более, что некоторые префиксы более выразительны, чем другие.
+Если у вас есть контроль над всем программным обеспечением, которое будет
+разработано для вашего продукта, вы можете выбрать все префиксы и избежать
+проблем. Если вы собираетесь купить стороннее программное обеспечение,
+использующее схему именования префиксов, вам придется обойти имена, выбранные
+вашими поставщиками, и надеяться, что два разных поставщика не столкнуться на
+одном и том же префиксе
+</P>
+
+<IMG SRC="gifs/prefixed-names.gif" ALT="prefixed names example" ALIGN="BOTTOM">
+
+<P>Еще один способ избежать конфликтов имен-это использовать квалифицированные
+имена. Для этого язык должен обеспечивать поддержку отдельных пространств имен,
+определяемых и контролируемых программистом. Чтобы понять, как это работает,
+представьте, что все имена, которые вы создаете для своей программы,
+записываются на листе бумаги с вашим именем, написанным сверху в качестве
+заголовка-это квалификатор для всех ваших имен. Чтобы узнать, безопасно ли
+использовать имя, вам нужно только проверить список имен, которые вы написали на этой странице. Когда чье-то программное обеспечение нуждается в услугах
+вашей программы, они ссылаются на ваши имена, используя как ваш квалификатор,
+так и имя. Поскольку программное обеспечение другого человека имеет другой
+квалификатор, а его квалификатор неявен (то есть он не должен быть записан) 
+для их собственных имен, нет никаких шансов на конфликт имен.
+</P>
+
+<P>Вы можете подумать, что квалификатор-это не более чем сложный способ
+добавить префикс к имени. Однако есть тонкое, но важное отличие. Префикс 
+- это часть имени; он не может быть изменен после записи. Квалификатор 
+отделен от имен, которые он квалифицирует, и "записан" точно в одном месте.
+Кроме того, вы можете указать на "листе бумаги", на котором написаны имена, 
+и ссылаться на него как на "эти имена"."Если вы случайно выбрали тот же самый
+квалификатор, что и другой программист, вы все еще можете ссылаться на "эти
+имена" с помощью квалификатора по вашему собственному выбору-другими словами,
+вы можете изменить квалификатор <EM>после того, как программное обеспечение будет поставлено для вашего использования</EM>.
+</P>
+
+<IMG SRC="gifs/rename-package.gif" ALT="rename-package example" ALIGN="BOTTOM">
+
+<P>
+В приведенном выше примере две библиотеки поставляются в файлах 
+<CODE>LIB1</CODE> и <CODE>LIB2</CODE>. Оба разработчика библиотек 
+использовали имя <CODE>UTIL</CODE> для имени своего пространства
+имен,известного в Lisp как имя пакета. В каждой библиотеке перечислены имена,
+доступные клиенту. Программист, использующий эти две библиотеки, записывает 
+код в пакет с именем <CODE>MY-PACKAGE</CODE>. После загрузки каждой библиотеки
+программист переименовывает ее пакет, чтобы имена были различны. Затем на имена
+в библиотеке ссылаются с помощью их <EM>переименованных</EM> квалификаторов,
+как мы видим в вызовах <CODE>UTIL-1:INITIALIZE</CODE> и
+ <CODE>UTIL-2:INITIALIZE</CODE>. Обратите внимание, что имя
+<CODE>INITIALIZE</CODE>  все еще доступно программисту в его неполной форме
+-это эквивалентно <CODE>MY-PACKAGE:INITIALIZE</CODE>.
+</P>
+
+<P>Lisp предоставляет эту функциональность черезю набора функций и макросов,
+известных как средство <EM>package</EM>. Макрос <CODE>DEFPACKAGE</CODE> 
+удобно обеспечивает большинство операций с пакетами, в то время как макрос 
+<CODE>IN-PACKAGE</CODE> задает текущий пакет:</P>
+
+<pre>
+;;;; ---- File 1 ----
+(defpackage util1
+  (:export init func1 func2)
+  (:use common-lisp))
+(in-package util1)
+
+(defun init () 'util1-init)
+(defun func1 () 'util1-func1)
+(defun func2 () 'util1-func2)
+
+;;;; ---- File 2 ----
+(defpackage util2
+  (:export init func1 func2)
+  (:use common-lisp))
+(in-package util2)
+
+(defun init () 'util2-init)
+(defun func1 () 'util2-func1)
+(defun func2 () 'util2-func2)
+
+;;;; ---- File 3 ----
+(defpackage client
+  (:use common-lisp)
+  (:import-from util1 func1)
+  (:import-from util2 func2))
+(in-package client)
+
+(defun init () 'client-init)
+(util1:init)
+(util2:init)
+(init)
+(func1)
+(func2)
+</pre>
+
+<P>В этом примере показано содержимое трех файлов. Файл 1 и файл 2 определяют
+три функции, использующие одинаковые имена. Файл 1 помещает имена в пакет
+<CODE>UTIL1</CODE>, в то время как файл 2 использует пакет <CODE>UTIL2</CODE>.
+Форма <CODE>DEFPACKAGE</CODE> дает имя пакету. Параметр <CODE>:USE</CODE>
+указывает, что имена из другого пакета могут использоваться без каких-либо
+квалификаторов, в то время как параметр <CODE>:EXPORT</CODE> указывает имена,
+ которые доступны клиентам пакета.
+</P>
+
+<P>Форма <CODE>DEFPACKAGE</CODE> создает только пакет. Форма 
+<CODE>USE-PACKAGE</CODE> делает пакет текущим - все неквалифицированные 
+имена находятся в любом пакете, который является текущим. Переменная 
+<CODE>COMMON-LISP:*PACKAGE*</CODE> всегда содержит текущий пакет..</P>
+
+<P>Файл 3 создает пакет <CODE>CLIENT</CODE>. Опции  <CODE>:IMPORT-FROM</CODE>
+вводит определенные имена из пакетов <CODE>UTIL1</CODE> и <CODE>UTIL2</CODE>
+- эти имена могут использоваться без каких-либо квалификаторов в пакете
+<CODE>CLIENT</CODE>. На имена, экспортированные из <CODE>UTIL1</CODE> или
+<CODE>UTIL2</CODE>, но не импортированные клиентом, все еще можно ссылаться в
+<CODE>CLIENT</CODE> с помощью явного квалификатора пакета в форме:  
+<CODE><I>package</I>:<I>name</I></CODE>.
+</P>
+
+<P>Этот раздел охватывал только самые основные операции с пакетами. Мы
+рассмотрим дополнительные детали в <A HREF="chapter31.html">Глава 31</A>, 
+когда снова рассмотрим пакеты в контексте построения больших программных
+систем.</P>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-09.html">Chapter 3, Lesson 9</A> | Chapter 3, Lesson 10 | <A HREF="chapter03-11.html">Chapter 3, Lesson 11</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 4</title> 
+</head> 
+
+<body bgcolor="white" text="black"><h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-4">Урок 4 - Собираем вещи и разбираем их</A></h2> 
+
+<h3>CONS</h3> 
+
+<P>
+<CODE>CONS</CODE> - это самый простой <I>конс<.I>труктор списков. Это функция,
+поэтому она вычисляет оба своих аргумента. Вторым аргументом должен 
+быть список или  <CODE>NIL</CODE>.
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 1 nil)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 2 (cons 1 nil))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (2 1)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 3 (cons 2 (cons 1 nil)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (3 2 1)</PRE>
+
+<P>
+<CODE>CONS</CODE> добавляет новый элемент в начало списка. 
+Пустой список эквивалентен  <CODE>NIL</CODE>,
+</P>
+
+<PRE WIDTH=80>() <IMG SRC="gifs/equivalent.gif" ALT="eqv" ALIGN="BOTTOM"> NIL</PRE>
+
+<P>так что мы тоже могли бы написать:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 1 ())<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 2 (cons 1 ()))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (2 1)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cons 3 (cons 2 (cons 1 ())))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (3 2 1)</PRE>
+
+<BLOCKQUOTE>
+<P>
+На случай, если вам интересно, да, есть кое-что особенное в <CODE>NIL</CODE>.  
+<CODE>NIL</CODE> - это один из двух символов в Lisp, который не является 
+ключевым словом, но все же имеет свое постоянное значение. 
+<CODE>T</CODE> - это еще один символ, который работает так же
+</P>
+
+<P>
+Тот факт, что <CODE>NIL</CODE> вычисляется сам в себя, в сочетании с 
+<CODE>()</CODE> <IMG SRC="gifs/equivalent.gif" ALT="eqv" ALIGN="BOTTOM"> 
+<CODE>NIL</CODE>, означает, что вы можете написать <CODE>()</CODE>, а не 
+<CODE>(QUOTE ())</CODE>. В противном случае Lisp должен был бы сделать 
+исключение из своего правила вычислений, чтобы обработать пустой список.
+</P>
+</BLOCKQUOTE>
+
+<h3>LIST</h3> 
+
+<P>
+Как вы, возможно, заметили, построение списка из вложенных форм 
+<CODE>CONS</CODE> может быть немного утомительным. Форма <CODE>LIST</CODE>
+делает то же самое в более наглядной манере:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (list 1 2 3)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1 2 3)</PRE>
+
+<P>
+<CODE>LIST</CODE> может принимать любое количество аргументов. 
+Поскольку <CODE>LIST</CODE>-это функция, она вычисляет свои аргументы:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (list 1 2 :hello "there" 3)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1 2 :HELLO "there" 3)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a :this)<br>        (b :and)<br>        (c :that))<br>     (list a 1 b c 2))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (:THIS 1 :AND :THAT 2)</PRE>
+
+<h3>FIRST и REST</h3> 
+
+<P>
+Если вы думаете, что список состоит из двух частей - первого элемента 
+и всего остального, - то вы можете получить любой отдельный элемент списка, 
+используя две операции <CODE>FIRST</CODE> и <CODE>REST</CODE>.
+.</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq my-list (quote (1 2 3 4 5)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (1 2 3 4 5)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (first my-list)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (rest my-list)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (2 3 4 5)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (first (rest my-list))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 2<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (rest (rest my-list))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (3 4 5)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (first (rest (rest my-list)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 3<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (rest (rest (rest my-list)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (4 5)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (first (rest (rest (rest my-list))))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 4</PRE>
+
+<P>
+Очевидно, что связывание в цепочку функций <CODE>FIRST</CODE> и <CODE>REST</CODE
+может стать утомительным. Кроме того, этот подход не может работать, когда 
+вам нужно выбрать определенный элемент при запуске программы или когда 
+список имеет неопределенную длину. Мы рассмотрим, как решить эти проблемы в 
+<A HREF="chapter04.html">Главе 4</A>, определив рекурсивные функции. 
+Позже, в <A HREF="chapter13.html">главе 13</A>, мы увидим функции, 
+которые предоставляет Lisp для выполнения выбора элементов списков 
+и других последовательностей.
+</P>
+
+<BLOCKQUOTE>
+<CODE>FIRST</CODE> и <CODE>REST</CODE> являются довольно недавними 
+дополнениями к Lisp, переименовыая эквивалентные функции <CODE>CAR</CODE>
+и <CODE>CDR</CODE>, соответственно. <CODE>CAR</CODE> и <CODE>CDR</CODE>
+получили свои названия от деталей реализации 
+одной из самых ранних реализаций Lisp, и эти названия сохранялись 
+в течение десятилетий, несмотря на то, что базовая реализация давно 
+изменилась.
+</BLOCKQUOTE>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> |<A HREF="chapter03-03.html">Chapter 3, Lesson 3</A> | Chapter 3, Lesson 4 | <A HREF="chapter03-05.html">Chapter 3, Lesson 5</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

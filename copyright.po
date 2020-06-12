@@ -1,0 +1,55 @@
+#. extracted from in/copyright.html
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-04-19 13:51+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Translate Toolkit 2.2.5\n"
+
+#: in/copyright.html:5
+msgid ""
+"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \""
+"http://www.w3.org/TR/html4/strict.dtd\">\n"
+"<html><head>\n"
+"<title>Successful Lisp - Copyright</title>\n"
+"</head> "
+msgstr ""
+
+#: in/copyright.html:8
+msgid ""
+"<body bgcolor=\"white\" text=\"black\">\n"
+"<h1>Copyright</h1> "
+msgstr ""
+
+#: in/copyright.html:11
+msgid ""
+"<p>This book is copyright &copy; 1995-2001 David B. Lamkins.  All rights\n"
+"are reserved worldwide."
+msgstr ""
+
+#: in/copyright.html:24
+msgid ""
+"<hr>\n"
+"<div align=\"center\">\n"
+"<a href=\"contents.html\">Contents</a> | <a href=\"cover.html\">Cover</a> "
+"<br> \n"
+"<a href=\"credits.html\">Credits</a> | Copyright | <a href=\"acknowledgments."
+"html\">Acknowledgments</a> \n"
+"</div>\n"
+"<hr>\n"
+"<address>\n"
+"Copyright &copy; 1995-2001, David B. Lamkins<br>\n"
+"All Rights Reserved Worldwide<br>\n"
+"<br>\n"
+"This book may not be reproduced without the written consent of its author.  "
+"Online distribution is restricted to the author's site.\n"
+"</address> \n"
+"</body> </html> "
+msgstr ""

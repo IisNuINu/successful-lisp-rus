@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 8</title> 
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-8">Урок 8 - Основы определения Макросов</A></h2> 
+
+<h3>DEFMACRO определяет именованный макрос</h3> 
+
+<P>
+Форма <CODE>DEFMACRO</CODE> очень похожа на форму <CODE>DEFUN</CODE>
+(см. <A HREF="chapter03-07.html">Урок 7</A>) - у нее есть имя, 
+список имен аргументов и тело:
+</P>
+
+<PRE WIDTH=80>(defmacro <VAR>name</VAR> (<VAR>argument</VAR> ...)
+   <VAR>body</VAR>)</PRE>
+
+<h3>Макросы возвращают форму, а не значения</h3> 
+
+<P>
+Тело макроса возвращает форму для вычисления. Другими словами, вам нужно
+написать тело макроса таким образом, чтобы он возвращал форму, 
+а не значение. Когда Lisp вычисляет/оценивает вызов вашего макроса, 
+он сначала вычисляет тело вашего определения макроса, а затем вычисляет результат этого первого вычисления(но делает он это в разное время,
+первое выполняется во время компиляции, а второе во время выполнения). 
+(Для сравнения, тело функции вычисляется, чтобы вернуть значение.)
+</P>
+
+<P>Вот несколько простых макросов, иллюстрирующих большую часть того, 
+что вам нужно знать:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defmacro setq-literal (place literal)<br>     `(setq ,place ',literal))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> SETQ-LITERAL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq-literal a b)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> B<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> a<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> B<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defmacro reverse-cons (rest first)<br>     `(cons ,first ,rest))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> REVERSE-CONS<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (reverse-cons nil A)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (B)</PRE>
+
+<P>
+<CODE>SETQ-LITERAL</CODE> работает так же, как <CODE>SETQ</CODE>, за
+исключением того, что <EM>ни один</EM> аргумент не вычисляется. 
+(Помните, что  <CODE>SETQ</CODE> вычисляет свой второй аргумент.) 
+Тело <CODE>SETQ-LITERAL</CODE> имеет форму, которая начинается 
+с <CODE>`</CODE>(произносится как "обратная кавычка"). Обратная кавычка 
+ведет себя как обычная кавычка - подавляя вычисление всех вложенных форм
+ - за исключением тех случаев, когда в форме с обратной кавычкой появляется
+запятая(или запятая с собакой - <CODE>,@</CODE> ), при этом следующий за зяпятой символ
+- вычисляется.
+</P>
+
+<P>
+Итак, в нашем вызове <CODE>(SETQ-LITERAL A B)</CODE> выше, 
+вот что происходит:
+</P>
+
+<OL>
+<LI>привязка <CODE>PLACE</CODE> к символу <CODE>A</CODE>.</LI>
+<LI>привязка <CODE>LITERAL</CODE> к символу <CODE>B</CODE>.</LI>
+<LI>вычисление тела <CODE>`(SETQ ,PLACE ',LITERAL)</CODE>,  выполняя следующие действия:</LI>
+	<OL>
+	<LI>вычислить <CODE>PLACE</CODE> чтобы получить символ 
+<CODE>A</CODE>.</LI>
+	<LI>вычислить <CODE>LITERAL</CODE> чтобы получить символ <CODE>B</CODE>.</LI>
+	<LI>вернуть форму <CODE>(SETQ A 'B)</CODE>.</LI>
+	</OL>
+<LI>вычислить форму <CODE>(SETQ A 'B)</CODE>.</LI>
+</OL>
+
+<P>
+Ни обратная кавычка, ни запятые не появляются в возвращаемой форме. 
+Ни <CODE>A</CODE>, ни <CODE>B</CODE> не вычисляются в вызове 
+<CODE>SETQ-LITERAL</CODE>, но по разным причинам. <CODE>A</CODE> не
+вычисляется, потому что он появляется в качестве первого аргумента 
+<CODE>SETQ</CODE>. <CODE>B</CODE> не вычисляется, поскольку он 
+появляется после кавычки в форме, возвращаемой макросом.
+</P>
+
+<P>Операция <CODE>(REVERSE-CONS NIL A)</CODE> аналогична:</P>
+
+<OL>
+<LI>привязать <CODE></CODE>REST</LI> к символу <CODE>NIL</CODE>.
+<LI>привязать <CODE>FIRST</CODE> к символу <CODE>A</CODE>.</LI>
+<LI>вычислить тело <CODE>`(CONS ,FIRST ,REST)</CODE>, выполнив следующие действия:</LI>
+	<OL>
+	<LI>вычислить <CODE>FIRST</CODE> чтобы получить символ <CODE>A</CODE>.</LI>
+	<LI>вычислить <CODE>REST</CODE> чтобы получить символ <CODE>NIL</CODE>.</LI>
+	<LI>вернуть форму <CODE>(CONS A NIL)</CODE>.</LI>
+	</OL>
+<LI>вычислить форму <CODE>(CONS A NIL)</CODE>.</LI>
+</OL>
+
+<P>
+Оба аргумента <CODE>REVERSE-CONS</CODE> вычисляются, потому что 
+<CODE>CONS</CODE> вычисляет свои аргументы, и наше макро-тело не 
+цитирует ни один аргумент. <CODE>A</CODE> вычисляется в  символу B
+(см. глобальное присваивание setq-literal, а NIL-вычисляется в себя.
+</P>
+
+<P>
+Если вы хотите увидеть, как выглядит ваше тело макроса перед вычислением, вы можете использовать функцию <CODE>MACROEXPAND</CODE>:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (macroexpand '(setq-literal a b))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (SETQ A 'B)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (macroexpand '(reverse-cons nil a))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (CONS A NIL)</PRE>
+
+<P>
+Поскольку <CODE>MACROEXPAND</CODE> - это функция, она вычисляет свои 
+аргументы. Вот почему вы должны цитировать форму, которую хотите расширить.
+</P>
+
+<P>
+Примеры в этом уроке намеренно очень просты, поэтому вы можете понять 
+основной механизм. В общем, макросы писать сложнее, чем функции-в 
+<A HREF="chapter20.html">Главе 20</A> мы рассмотрим причины и 
+правильные методы работы с более сложными ситуациями.
+</P>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-07.html">Chapter 3, Lesson 7</A> | Chapter 3, Lesson 8 | <A HREF="chapter03-09.html">Chapter 3, Lesson 9</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

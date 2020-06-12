@@ -1,0 +1,84 @@
+#. extracted from in/author.html
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-04-19 13:50+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Translate Toolkit 2.2.5\n"
+
+#: in/author.html:5
+msgid ""
+"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \""
+"http://www.w3.org/TR/html4/strict.dtd\">\n"
+"<html><head>\n"
+"<title>Successful Lisp - Author</title> \n"
+"</head> "
+msgstr ""
+
+#: in/author.html:13
+msgid ""
+"<body bgcolor=\"white\" text=\"black\">\n"
+"<h1>About the Author</h1> \n"
+"<p>David Lamkins was born in Watervliet, New York. Very little is\n"
+"known about his childhood except that he started taking things apart\n"
+"as soon as he could hold a screwdriver. It wasn't until David\n"
+"reached the age of twelve that he started putting things back\n"
+"together."
+msgstr ""
+
+#: in/author.html:20
+msgid ""
+"<p>This fascination with the inner workings of things carried David\n"
+"forward through a long period of his life (euphemistically dubbed\n"
+"\"The Quiet Years\"), during which he masterfully combined the roles\n"
+"of computer geek and responsible adult. Of course, this resulted in\n"
+"a rather mundane existence and bored the hell out of everyone around\n"
+"him..."
+msgstr ""
+
+#: in/author.html:24
+msgid ""
+"<p>David has recently rediscovered that people are more fun to play\n"
+"with than symbols, and has decided to -- in the grand tradition of\n"
+"reformed geeks everywhere -- get a life."
+msgstr ""
+
+#: in/author.html:30
+msgid ""
+"<p>After thirty years of half-heartedly messing around on the guitar\n"
+"(including some stints in very short-lived bands during his teen\n"
+"years) David has finally decided that he'd like to be a musician and\n"
+"play in a band that performs dark, langorous, fluid music; an\n"
+"alchemic transmutation of psychedelia and metal."
+msgstr ""
+
+#: in/author.html:32
+msgid ""
+"<p>David's favorite movies are \"The Fifth Element\" and \"The Matrix\"."
+msgstr ""
+
+#: in/author.html:45
+msgid ""
+"<hr>\n"
+"<div align=\"center\">\n"
+"<a href=\"contents.html\">Contents</a> | <a href=\"cover.html\">Cover</a> "
+"<br>\n"
+"About the Author | <a href=\"about.html\">About the Book</a> \n"
+"</div>\n"
+"<hr>\n"
+"<address>\n"
+"Copyright &copy; 1995-2001, David B. Lamkins<br>\n"
+"All Rights Reserved Worldwide<br>\n"
+"<br>\n"
+"This book may not be reproduced without the written consent of its author.  "
+"Online distribution is restricted to the author's site.\n"
+"</address> \n"
+"</body> </html> "
+msgstr ""

@@ -1,0 +1,269 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 9</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 9 - Введение в Обработку Ошибок и 
+Не Локальные Выходы</h1> 
+
+<p>В этой главе мы рассмотрим некоторые специализированные формы 
+управления потоком выполнения, предоставляемые Common Lisp.
+
+
+<h2>UNWIND-PROTECT: когда он(некий важный код) абсолютно, положительно 
+должен выполняться</h2>
+
+<p>
+Одна из проблем написания надежных программ заключается в том, 
+чтобы убедиться, что важные части вашего кода всегда выполняются, 
+даже при наличии ошибок. Обычно это наиболее важно, когда вы 
+выделяете, используете и освобождаете такие ресурсы, как файлы 
+и память, например:
+
+<pre>
+<i>; Setup</i> 
+Выделить некоторые ресурсы
+Открыть некоторые файлы
+<i>; Process</i> 
+Процесс использующий файлы и хранилище (может завершиться неудачно)
+<i>; Cleanup</i> 
+Закрыть файлы
+Освободить ресурсы
+</pre> 
+
+<p>Если этап обработки может завершиться неудачно 
+(или быть прерван пользователем), вы должны убедиться, что все 
+возможные пути выхода по-прежнему проходят через раздел очистки, 
+чтобы закрыть файлы и освободить хранилище. Более того, ваша 
+программа должна быть готова к обработке ошибок, возникающих 
+на этапе загрузки, когда вы выделяете хранилище и открываете 
+файлы, поскольку любая из этих операций также может завершиться 
+неудачей; любая частично завершенная загрузка все равно должна 
+быть отменена в разделе очистки.
+
+<p>Лисп форма <code>UNWIND-PROTECT</code>  позволяет сделать
+это очень легко.
+
+<pre>
+(let (resource stream)
+  (unwind-protect
+    (progn
+      (setq resource (allocate-resource)
+            stream (open-file))
+      (process stream resource))
+    (when stream (close stream))
+    (when resource (deallocate resource))))
+</pre> 
+
+<p>Вот что здесь происходит. <code>LET</code> привязывает 
+<code>RESOURCE</code> и <code>STREAM</code> к <code>NIL</code> - мы будем использовать значение <code>NIL</code>, чтобы обозначить, что не было 
+выделено никакого ресурса или не открыт файл. Первая форма в 
+<code>UNWIND-PROTECT</code> - это "защищаемая" форма; 
+если контроль/управление покидает защищаемую форму с помощью 
+<em>каких-либо</em> средств, то остальные формы - формы "очистки" - 
+гарантированно будут выполнены.
+
+<p>В нашем примере защищенная форма-это <code>PROGN</code>, 
+которая вызывает <code>ALLOCATE-RESOURCE</code> и <code>OPEN-FILE</code>
+для установки наших локальных переменных, а затем процесс использует эти
+ресурсы. <code>SETQ</code> присваивает значения последовательно для локальных
+переменных: <code>(ALLOCATE-RESOURCE)</code> должно быть успешным, прежде
+чем значения могут быть присвоены <code>RESOURCE</code>, 
+<code>OPEN-FILE</code> должен быть успешным, прежде чем ее значение 
+может быть присвоено <code>STREAM</code>. Сбой (т. е. прерывание или ошибка) 
+в любой точке этой последовательности приведет к передаче управления 
+из защищаемой формы.
+
+
+<p>Если инициализация проходит успешно и <code>PROCESS</code> возвращается нормально, управление передается в формы очистки. 
+
+<p>Если что-либо вызывает выход защищаемой формы - например, ошибка или
+прерывание с клавиатуры - управление немедленно передается в первую форму
+очистки. Формы очистки защищены предложениями <code>WHEN</code>, поэтому 
+мы не будем пытаться закрыть поток или освободить ресурс, если ошибка 
+привела к тому, что они никогда не были созданы в первой форме.
+
+<h2>Милостивые выходы с BLOCK и RETURN-FROM</h2>
+
+<p>Формы <code>BLOCK</code> и <code>RETURN-FROM</code> дают 
+вам структурированный лексический выход из любого вложенного 
+вычисления. Форма <code>BLOCK</code> имеет имя, за которым следует 
+тело, состоящее из нуля или более форм. Форма <code>RETURN-FROM</code>
+ожидает имя блока и необязательное (по умолчанию - <code>NIL</code>) 
+возвращаемое значение.
+
+<pre>
+? (defun block-demo (flag)
+    (print 'before-outer)
+    (block outer
+      (print 'before-inner)
+      (print (block inner
+               (if flag
+                 (return-from outer 7)
+                 (return-from inner 3))
+               (print 'never-print-this)))
+      (print 'after-inner)
+      t))
+BLOCK-DEMO
+? (block-demo t)
+
+BEFORE-OUTER
+BEFORE-INNER
+7
+? (block-demo nil)
+
+BEFORE-OUTER
+BEFORE-INNER
+3
+AFTER-INNER
+T
+</pre> 
+
+<p>Когда мы вызываем <code>BLOCK-DEMO</code> с <code>T</code>, 
+последующий оператор <code>IF</code> -- (return-from outer 7) -- немедленно возвращает значение 7 из формы <code>(BLOCK OUTER ...</code>. 
+Вызов <code>BLOCK-DEMO</code> c <code>NIL</code> выполняет альтернативную 
+ветвь <code>IF</code> -- <code>(return-from inner 3)</code> -- передавая 
+значение 3 в форму <code>PRINT</code>, обернутую вокруг формы
+<code>(BLOCK INNER ...</code>.
+
+<p>
+Имена блоков имеют лексическую область действия: <code>RETURN-FROM</code>
+передает управление самому внутреннему блоку
+(<code>innermost</code> <code>BLOCK</code>) с соответствующим именем.
+
+<p>Некоторые формы неявно создают блок вокруг форм своего тела. 
+Когда имя связано с формой, например с <code>DEFUN</code>, 
+блок принимает то же самое имя.
+
+<pre>
+? (defun block-demo-2 (flag)
+    (when flag
+      (return-from block-demo-2 nil))
+    t)
+BLOCK-DEMO-2
+? (block-demo-2 t)
+NIL
+? (block-demo-2 nil)
+T
+</pre> 
+
+<p>Другие формы, такие как простой <code>LOOP</code> и
+<code>DOTIMES</code>, устанавливают блок с именем NIL вокруг форм 
+своего тела. Вы можете вернуться из блока <code>NIL</code> 
+с помощью <code>(RETURN-FROM NIL ...)</code>, или просто
+<code>(RETURN ...)</code>.
+
+<pre>
+? (let ((i 0))
+    (loop
+      (when (&gt; i 5)
+        (return))
+      (print i)
+      (incf i)))
+
+0
+1
+2
+3
+4
+5
+NIL
+? (dotimes (i 10)
+    (when (&gt; i 3)
+      (return t))
+    (print i))
+
+0
+1
+2
+3
+T
+</pre> 
+
+<h2>Побег из любого места (но не в любое время) с CATCH и THROW</h2>
+
+<p>Таким образом, <code>BLOCK</code> и <code>RETURN-FROM</code>
+удобны для передачи управления из вложенных форм, но они полезны 
+только тогда, когда точки выхода (т. е. имена блоков) лексически 
+видны. Но что делать, если вы хотите вырваться/убраться из цепочки вызовов 
+функций?
+
+<pre>
+<i>; WARNING! This won't work!</i> 
+(defun bad-fn-a ()
+  (bad-fn-b))
+
+(defun bad-fn-b ()
+  (bad-fn-c))
+
+(defun bad-fn-c ()
+  (return-from bad-fn-a))  <i>; There is no block BAD-FN-A visible here!</i> 
+</pre> 
+
+<p>Введите <code>CATCH</code> и <code>THROW</code>, которые позволяют 
+установить передачу управления с помощью динамической области видимости.
+Напомним, что динамическая область видимости следует за цепочкой активных 
+форм, а не за текстуальной оболочкой одной формы внутри другой 
+лексической области видимости.
+
+<pre>
+? (defun fn-a ()
+    (catch 'fn-a
+      (print 'before-fn-b-call)
+      (fn-b)
+      (print 'after-fn-b-call)))
+FN-A
+? (defun fn-b ()
+    (print 'before-fn-c-call)
+    (fn-c)
+    (print 'after-fn-c-call))
+FN-B
+?(defun fn-c ()
+   (print 'before-throw)
+   (throw 'fn-a 'done)
+   (print 'after-throw))
+FN-C
+? (fn-a)
+
+BEFORE-FN-B-CALL 
+BEFORE-FN-C-CALL 
+BEFORE-THROW 
+DONE
+</pre> 
+
+<h2>Убедитесь, что файлы остаются открытыми столько, сколько нужно</h2>
+
+<p>Открытие файла, чтобы обработать его данные, просто очень длительный 
+процесс,  -  очень распространенная операция. Мы видели выше, что 
+<code>UNWIND-PROTECT</code> может быть использован для 
+обеспечения того, чтобы файл был правильно закрыт. 
+Как и следовало ожидать, такая распространенная операция 
+имеет свою собственную форму в Lisp.
+
+<pre>
+(with-open-file (stream "file.ext" :direction :input)
+  (do-something-with-stream stream))
+</pre> 
+
+<p>
+<code>WITH-OPEN-FILE</code> обертывает форму <code>OPEN</code> и 
+<code>CLOSE</code> вокруг кода, который вы предоставляете, и 
+гарантирует, что <code>CLOSE</code> будет вызвано в нужное время. 
+Все опции, доступные для <code>OPEN</code>, могут быть использованы 
+в <code>WITH-OPEN-FILE</code> - я показал параметры, которые вы 
+использовали бы, чтобы открыть файл для ввода.
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter08.html">Chapter 8</a> | Chapter 9 | <a href="chapter10.html">Chapter 10</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

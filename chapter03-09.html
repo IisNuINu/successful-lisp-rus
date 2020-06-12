@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 9</title> 
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-9">Урок 9 - Основы - Множественные Значения</A></h2> 
+
+<h3>Большинство форм создают только одно значение</h3> 
+
+<P>Форма обычно возвращает только одно значение. Lisp имеет только 
+небольшое количество форм, которые создают или получают несколько 
+значений.</P>
+
+<h3>VALUES создает несколько (или ни одного) значений</h3> 
+
+<P><CODE>VALUES</CODE> создает ноль или больше значений:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (values)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (values :this)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :THIS<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (values :this :that)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :THIS<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> :THAT</PRE>
+
+<P>
+Мы покажем, сколько значений возвращается количеством строк 
+<IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM">, полученных при
+вычислении формы. Три формы <CODE>VALUES</CODE> в приведенном выше примере произвели ноль, одно и два значения соответственно.
+</P>
+
+<P><CODE>VALUES</CODE> - это функция, и поэтому она вычисляет свои аргументы.</P>
+
+<h3>Несколько специальных форм получают несколько значений</h3> 
+
+<P>Что вы можете сделать с несколькими значениями в программе? Самые основные операции заключаются в том, чтобы:</P>
+
+<OL>
+<LI>привязать каждое значение к отдельному символу, или</LI>
+<LI>собрать значения в список.</LI>
+</OL>
+
+<P>Используем <CODE>MULTIPLE-VALUE-BIND</CODE>,  чтобы связать каждое значение
+ с отдельным символом:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (multiple-value-bind (a b c) (values 2 3 5)<br>     (+ a b c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 10</PRE>
+
+<P>Если вы предоставляете больше значений, чем есть символов, то избыточные
+ значения игнорируются:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (multiple-value-bind (a b c) (values 2 3 5 'x 'y)<br>     (+ a b c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 10</PRE>
+
+<P>
+Если вы предоставляете меньше значений, чем имеется символов, то избыточные
+символы будут связаны  с <CODE>NIL</CODE>:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (multiple-value-bind (w x y z) (values :left :right)<br>     (list w x y z))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (:LEFT :RIGHT NIL NIL)</PRE>
+
+<h3>Некоторые формы передают несколько значений</h3> 
+
+<P>
+Некоторые формы передают последнее значение в своем теле, а не создают 
+новое значение. Примеры включают тела  <CODE>LET</CODE>, 
+<CODE>COND</CODE>, <CODE>DEFUN</CODE> и <CODE>LAMBDA</CODE>.</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (let ((a 1)<br>        (b 2))<br>     (values a b))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 1<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 2<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (cond (nil 97)<br>        (t (values 3 4)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 3<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 4<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (defun foo (p q)<br>     (values (list :p p) (list :q q)))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> FOO<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (foo 5 6)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (:P 5)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (:Q 6)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> ((lambda (r s)<br>      (values r s))<br>     7 8)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 7<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 8</PRE>
+
+<BLOCKQUOTE>
+<P>
+В случае функции и лямбда-тел множественные значения фактически возвращаются чем-то, называемым "<EM>неявным"</EM> <CODE>PROGN</CODE>"."Это причудливый способ сказать, что тела могут содержать несколько форм, и только значение последней формы возвращается.
+</P>
+
+<P>
+Вы можете использовать специальную форму <CODE>PROGN</CODE>, когда вам нужно
+такое поведение. <CODE>(PROGN form1 form2 ... formN)</CODE> вычисляет 
+от <CODE>form1</CODE> до <CODE>formN</CODE>  по порядку и возвращает значение <CODE>formN</CODE>.
+</P>
+</BLOCKQUOTE>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-08.html">Chapter 3, Lesson 8</A> | Chapter 3, Lesson 9 | <A HREF="chapter03-10.html">Chapter 3, Lesson 10</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

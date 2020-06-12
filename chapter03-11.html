@@ -1,0 +1,255 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 11</title> 
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-11">Урок 11 - Основы Ввода и Вывода</A></h2> 
+
+<h3>READ позволяет получать Лиспу данные</h3> 
+
+<P>
+Как мы видели в <A HREF="chapter03-10.html#characters">Уроке 10</A>, 
+<CODE>READ</CODE> превращает символьные знаки в данные Lisp. До сих пор вы
+видели печатное представление нескольких видов данных Lisp:
+</P>
+
+<UL>
+<LI>символов и чисел,</LI>
+<LI>строк, символьных знаков(characters), списков, массивов, векторов
+и структур,</LI>
+<LI>и хэш-таблиц.</LI>
+</UL>
+
+<P>Читатель Lisp выполняет свою работу в соответствии с классификацией 
+символьных знаков. Ниже приведены стандартные классификации. Как мы увидим в
+<A HREF="chapter03-12.html">Уроке 12</A>, вы можете изменить эти классификации
+для своих собственных нужд.</P>
+
+<PRE WIDTH=80>
+Standard Constituent Characters
+-------------------------------
+ a b c d e f g h i j k l m n o p q r s t u v w x y z
+ A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
+ 0 1 2 3 4 5 6 7 8 9
+ ! $ % & * + - . / : &lt; = &gt; ? @ [ ] ^ _ { } ~
+ &lt;backspace&gt; &lt;rubout&gt;
+</PRE>
+
+<PRE WIDTH=80>
+Standard Terminating Macro Characters
+-------------------------------------
+ " ' ( ) , ; `
+</PRE>
+
+<PRE WIDTH=80>
+Standard Non-Terminating Macro Characters
+-----------------------------------------
+ #
+</PRE>
+
+<PRE WIDTH=80>
+Standard Single Escape Characters
+---------------------------------
+ \
+</PRE>
+
+<PRE WIDTH=80>
+Standard Multiple Escape Characters
+-----------------------------------
+ |
+</PRE>
+
+<PRE WIDTH=80>
+Standard Whitespace Characters
+------------------------------
+ &lt;tab&gt; &lt;space&gt; &lt;page&gt; &lt;newline&gt; &lt;return&gt; &lt;linefeed&gt;
+</PRE>
+
+<P>Если <CODE>READ</CODE> начинает работу с составного(<EM>constituent</EM>)
+символьного знака, он начинает накапливать символ или число. Когда
+<CODE>READ</CODE> сталкивается с завершающим макрознаком или пробельным
+символьным знаком, он пытается интерпретировать собранные составляющие
+символьные знаки сначала как число, а затем как символ. Если возможна числовая интерпретация, <CODE>READ</CODE> возвращает число. В противном случае
+<CODE>READ</CODE> изменяет алфавитные знаки на стандартный регистр (обычно верхний регистр), вводит/интернирует(interns) имя в качестве символа и
+возвращает символ.
+</P>
+
+<P>
+Особую роль играют Escape знаки. Единственный escape-знак заставляет
+следующий символьный знак рассматриваться точно как составной символьный
+знак. Таким образом, знаки, которые обычно рассматриваются как пробелы 
+или завершающие макрознаки, могут быть частью символа. Если <CODE>READ</CODE>
+сталкивается с экранирующим знаком, он никогда не пытается 
+интерпретировать результирующие составляющие как число, даже если были экранированы только цифры.
+</P>
+
+<P>Если <CODE>READ</CODE> начинается с макрознака, то этот знак
+определяет следующий шаг:</P>
+
+<DL>
+<DT>"</DT>	<DD>Читается строка.</DD>
+<DT>'</DT>	<DD>Читается форма.</DD>
+<DT>(</DT>	<DD>Читается список.</DD>
+<DT>;</DT>	<DD>Игнорируется все последующие знаки, вплоть до новой строки</DD>
+<DT>#</DT>	<DD>Решается, что делать, основываясь на следующем знаке.</DD>
+</DL>
+
+<P>Наконец, некоторые данные Lisp не предназначены для чтения. Например
+печатное представление хэш-таблицы выглядит примерно так: 
+<CODE>#&lt;HASH-TABLE&gt;</CODE>. Будет ошибкой для <CODE>READ</CODE>, 
+если попытаться прочитать что-либо, начинающееся с символов 
+<CODE>#&lt;</CODE>.
+</P>
+
+<h3>PRINT записывает данные Lisp для вас и для READ</h3> 
+
+<P>
+Функция <CODE>PRINT</CODE> превращает объект Lisp в последовательность знаков, по которым <CODE>READ</CODE>, может его восстановить:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print 'abc)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">ABC<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> ABC<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print (list 1 2 3))<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">(1 2 3)<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> (1 2 3)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print "A String")<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">"A string"<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> "A string"<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print 387.9532)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">387.9532<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> 387.9532<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print (make-hash-table))<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">#&lt;HASH-TABLE&gt;<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> #&lt;HASH-TABLE&gt;</PRE>
+
+<P><CODE>PRINT</CODE> всегда начинает свой вывод со знака новой строки
+(<IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">) и последующим за ним
+пробелом (<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM">). 
+Это гарантирует, что вывод <CODE>PRINT</CODE> станет отдельно от любого
+окружающего вывода, так как новая строка и Пробел рассматриваются как пробелы 
+и не могут быть частью печатного представления объекта Lisp (если только они не
+экранированы/им не предшествует символ escape).
+</P>
+
+<P>
+Другие варианты <CODE>PRINT</CODE> имеют различное применение. 
+<CODE>PRIN1</CODE> ведет себя как <CODE>PRINT</CODE>, но не окружает 
+свой вывод пробельными знаками. Например, это может быть полезно, если 
+вы создаете имя из последовательных частей, например. 
+<CODE>PRINC</CODE> ведет себя как <CODE>PRIN1</CODE>, но генерирует 
+выходные данные, предназначенные для отображения, а не для <CODE>READ</CODE>;
+например,<CODE>PRINC</CODE> опускает кавычки вокруг строки и не печатает 
+escape-знаки.
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print 'a\ bc)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">|A BC|<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> |A BC|<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (prin1 'a\ bc)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> |A BC|<br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> |A BC|<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (princ '|A BC|)<br><IMG SRC="gifs/double-right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> <IMG SRC="gifs/return.gif" ALT="CR" ALIGN="BOTTOM">A BC<IMG SRC="gifs/blank.gif" ALT="SPC" ALIGN="BOTTOM"><br><IMG SRC="gifs/right-arrow.gif" ALT="=&gt;" ALIGN="BOTTOM"> |A BC|</PRE>
+
+<h3>OPEN и CLOSE позволяют вам работать с файлами</h3> 
+
+<P>
+Как правило, <CODE>READ</CODE> считывает данные с клавиатуры, а 
+<CODE>PRINT</CODE> выводит их на экран. Обе эти функции принимают
+необязательный аргумент; аргумент определяет входной поток для
+<CODE>READ</CODE> и выходной поток для <CODE>PRINT</CODE>. 
+А что такое поток(stream)? Поток - это источник или приемник данных, 
+обычно(но не обязательно) символьных знаков. Сейчас мы рассмотрим, 
+как текстовые файлы могут быть источником или приемником потока символьных
+знаков. В <A HREF="chapter19.html">Глава 19</A> мы рассмотрим некоторые 
+другие возможности.
+</P>
+
+<P>
+Вы можете присоединить поток к файлу с помощью функции <CODE>OPEN</CODE>,
+которая принимает в качестве параметров имя файла и аргумент ключевое слово, который указывает направление (ввод или вывод) потока. Чтобы завершить 
+операции над потоком и закрыть связанный файл, используйте функцию
+<CODE>CLOSE</CODE>.
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq out-stream (open "my-temp-file" :direction :output))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #&lt;OUTPUT-STREAM "my-temp-file"&gt;<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (print 'abc out-stream)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> ABC<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (close out-stream)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq in-stream (open "my-temp-file" :direction :input))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> #&lt;INPUT-STREAM "my-temp-file"&gt;<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (read in-stream)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> ABC<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (close in-stream)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T</PRE>
+
+<P>
+В этом примере мы создаем выходной поток для файла с именем 
+<CODE>my-temp-file</CODE> и печатаем символ <CODE>ABC</CODE> в этот
+поток. Обратите внимание, что <CODE>PRINT</CODE> возвращает свой аргумент
+как обычно, но не печатает его, а вместо этого напечатанный результат отправляется в файл.
+</P>
+
+<P>
+Затем мы закрываем выходной поток и открываем входной поток в том же файле.
+Затем мы читаем символ, который мы напечатали в файл, и заканчиваем, закрывая входной поток.
+</P>
+
+<h3>Вариации на тему печати - PRINT</h3> 
+
+<P>Lisp также предоставляет функцию <CODE>WRITE</CODE>, чтобы дать вам 
+управление над деталями печати, используя аргументы ключевые слова для
+управления этими параметрами:</P>
+
+<PRE WIDTH=80>Keyword Argument   Default Value           Action
+----------------   -------------           ------
+ :stream           t                       set output stream
+ :escape           *print-escape*          include escape characters
+ :radix            *print-radix*           include radix (base) prefix
+ :base             *print-base*            set number base (rationals)
+ :circle           *print-circle*          print circular structures
+ :pretty           *print-pretty*          add whitespace for readability
+ :level            *print-level*           limit nesting depth
+ :length           *print-length*          limit items per nesting level
+ :case             *print-case*            :upper, :lower, or :mixed
+ :gensym           *print-gensym*          prefix uninterned symbols
+ :array            *print-array*           print arrays readably
+ :readably         *print-readably*        force printing to be readable
+ :right-margin     *print-right-margin*    controls pretty-printing
+ :miser-width      *print-miser-width*                "
+ :lines            *print-lines*                      "
+ :pprint-dispatch  *print-pprint-dispatch*            "</PRE>
+
+<P>Так совпало, что переменные, названные выше в качестве значений по умолчанию
+аргументов ключевых слов, также управляют операцией <CODE>PRINT</CODE>. 
+Вы можете получить эффект <CODE>WRITE</CODE> с аргументами ключевых слов не 
+по умолчанию, связав эти переменные в форме <CODE>LET</CODE> вокруг 
+<CODE>PRIN1</CODE>:
+</P>
+
+<PRE WIDTH=80>
+(write foo                    (let ((*print-pretty* t)
+   :pretty t                        (*print-right-margin* 60)
+   :right-margin 60                 (*print-case* :downcase))
+   :case :downcase)      <IMG SRC="gifs/equivalent.gif" ALT="EQV" ALIGN="BOTTOM">      (prin1 foo)) 
+</PRE>
+
+<P>Мы использовали <CODE>PRIN1</CODE>, а не <CODE>PRINT</CODE>, 
+потому что нам не нужна предшествующая новая строка и последующий пробел,
+который добавляет <CODE>PRINT</CODE>
+</P>
+
+<P>Если ваша программа изменяет переменные печати <CODE>*PRINT-...*</CODE>,
+но вам нужно обеспечить значения по умолчанию в какой-то момент в вашей
+программе, вы можете обернуть эту часть программы в форму 
+<CODE>WITH-STANDARD-IO-SYNTAX</CODE>(обеспечивающую стандартный 
+синтакс ввода-вывода):</P>
+
+<PRE WIDTH=80>
+<I>;Define printer control for the program.</I>
+(setq *print-circle* t)
+(setq *print-array* nil)
+(setq *print-escape* nil)
+...
+<I>;Print with the settings established above.</I>
+(print ...)
+...
+<I>;Change back to default printer control settings</I>
+(with-standard-io-syntax
+   ...
+   <I>;Print with the standard settings,
+   ;overriding those established above.</I>
+   (print ...)
+   ...)
+<I>;Outside the</I> WITH-STANDARD-IO-SYNTAX <I>form,
+;we once again have the print settings established
+;by the</I> SETQ <I>forms at the top of the example.</I></PRE>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-10.html">Chapter 3, Lesson 10</A> | Chapter 3, Lesson 11 | <A HREF="chapter03-12.html">Chapter 3, Lesson 12</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

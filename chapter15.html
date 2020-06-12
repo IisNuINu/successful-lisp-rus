@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 15</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 15 - Замыкания</h1> 
+
+<P>
+В этой главе мы подробно остановимся на обсуждении вопроса о замыканиях, 
+которое мы начали в <a href="chapter11.html#closures">Главе 11</a>. 
+Мы снова увидим, как (и почему) замыкания захватывают свободные переменные 
+для использования в других контекстах выполнения, а затем мы увидим некоторые 
+практические приложения. Мы закончим эту главу, рассмотрев функции, которые 
+возвращают функции.
+
+<h2>Является ли это функцией с временем жизни, или временем жизни функции?</h2>
+
+<p>
+Common Lisp не раскрывает замыкания как таковые. Напомним из 
+<a href="chapter11.html#closures">Главы 11</a>, что замыкание - 
+это набор замкнутых переменных, сохраняемых функцией. (Замкнутая переменная - это
+переменная, найденная "свободной "в функции; она "захватывается" замыканием. 
+Мы видели некоторые примеры этого в <a href="chapter11.html#closures">Главе 11</a>; 
+мы рассмотрим детали в следующем разделе, Если вы забыли.) По этой причине 
+программисты Lisp склонны называть "функцию, имеющую замкнутые переменные "просто"
+замыкаием.- Или, может быть, они называют его так, потому что это экономит 
+им девять слогов.
+
+<p>
+Замыкание должно быть связано с функцией, поэтому оно должно иметь тот же 
+срок жизни - или экстент/протяженность - что и функция. Но все замкнутые переменные 
+идут вместе  - замкнутая переменная имеет тот же экстент(время жизни), что и замыкание. 
+Это означает, что вы можете замкнуть лексическую переменную, которая обычно имеет
+лексический экстент, и дать этой переменной неопределенный экстент. Это очень 
+полезная техника, как мы вскоре увидим.
+
+<h2>Как определить свободную переменную и что с ней делать.</h2>
+
+<p>
+Переменная свободна в пределах функции (или в пределах любой формы, 
+если уж на то пошло), если нет привязки её имени в лексической области 
+- текстуальной границы функции. Вхождение привязки - 
+это вхождение имени, которое (в соответствии с определением формы, 
+включающей имя) связывает хранилище с именем.
+
+<p>
+Свободная переменная должна быть найдена в одном из двух мест. Либо функция 
+текстуально завернута в форму, которая обеспечивает связывание вхождения переменной, 
+либо переменная является специальной(<code>special</code>) (смотрите
+<a href="chapter08.html#special">Главу 8</a> ) и содержится в глобальном окружении. 
+Если свободная переменная не найдена ни в одном из этих двух мест, она не считается
+связанной (т. е. не имеет хранилища, связанного с именем) и вызовет ошибку при 
+ссылке на нее во время выполнения.
+
+<h2>Использование замыканий для хранения конфиденциальной информации.</h2>
+
+<p>
+Если вы закрываете/замыкаете лексическую переменную, то эта переменная доступна только 
+изнутри замыкания. Вы можете использовать это в своих интересах для хранения 
+информации, которая действительно является частной, доступной только для функций, 
+которые имеют замыкание, содержащее вашу частную переменную(ные).
+
+<pre>
+? (let ((password nil)
+        (secret nil))
+    (defun set-password (new-passwd)
+      (if password
+        '|Can't - already set|
+        (setq password new-passwd)))
+    (defun change-password (old-passwd new-passwd)
+      (if (eq old-passwd password)
+        (setq password new-passwd)
+        '|Not changed|))
+    (defun set-secret (passwd new-secret)
+      (if (eq passwd password)
+        (setq secret new-secret)
+        '|Wrong password|))
+    (defun get-secret (passwd)
+      (if (eq passwd password)
+        secret
+        '|Sorry|)))
+GET-SECRET
+? (get-secret 'sesame)
+|Sorry|
+? (set-password 'valentine)
+SECRET
+? (set-secret 'sesame 'my-secret)
+|Wrong password|
+? (set-secret 'valentine 'my-secret)
+MY-SECRET
+? (get-secret 'fubar)
+|Sorry|
+? (get-secret 'valentine)
+MY-SECRET
+? (change-password 'fubar 'new-password)
+|Not changed|
+? (change-password 'valentine 'new-password)
+NEW-PASSWORD
+? (get-secret 'valentine)
+|Sorry|
+<i>; The closed-over lexical variables aren't in the global environment</i> 
+? password
+Error: unbound variable
+? secret
+Error: unbound variable
+<i>; The global environment doesn't affect the closed-over variables</i> 
+? (setq password 'cheat)
+CHEAT
+? (get-secret 'cheat)
+|Sorry|
+</pre> 
+
+<h2>Функции, которые возвращают функции и чем они отличаются от макросов.</h2>
+
+<p>
+Предыдущий пример хорош только для сохранения одного секрета, потому что 
+каждый раз, когда мы вычисляем внешнюю форму <code>LET</code>, мы 
+переопределяем все функции, которые замыкаются над нашими "частными" 
+переменными. Если мы хотим устранить нашу зависимость от глобального 
+пространства имен для функций, манипулирующих нашими закрытыми переменными, 
+нам придется найти способ создать новые замкнутые/закрытые переменные и 
+вернуть функцию, которую мы можем сохранить и позже использовать для 
+манипулирования переменными. Что-то вроде этого сработает:
+
+<pre>
+? (defun make-secret-keeper ()
+    (let ((password nil)
+          (secret nil))
+      #'(lambda (operation &amp;rest arguments)
+          (ecase operation
+            (set-password
+             (let ((new-passwd (first arguments)))
+               (if password
+                 '|Can't - already set|
+                 (setq password new-passwd))))
+            (change-password
+             (let ((old-passwd (first arguments))
+                   (new-passwd (second arguments)))
+               (if (eq old-passwd password)
+                 (setq password new-passwd)
+                 '|Not changed|)))
+            (set-secret
+             (let ((passwd (first arguments))
+                   (new-secret (second arguments)))
+               (if (eq passwd password)
+                 (setq secret new-secret)
+                 '|Wrong password|)))
+            (get-secret
+             (let ((passwd (first arguments)))
+               (if (eq passwd password)
+                 secret
+                 '|Sorry|)))))))
+MAKE-SECRET-KEEPER
+? (defparameter secret-1 (make-secret-keeper))
+SECRET-1
+? secret-1
+#&lt;LEXICAL-CLOSURE #x36AE056&gt;
+? (funcall secret-1 'set-password 'valentine)
+VALENTINE
+? (funcall secret-1 'set-secret 'valentine 'deep-dark)
+DEEP-DARK
+? (defparameter secret-2 (make-secret-keeper))
+SECRET-2
+? (funcall secret-2 'set-password 'bloody)
+BLOODY
+? (funcall secret-2 'set-secret 'bloody 'mysterious)
+MYSTERIOUS
+? (funcall secret-2 'get-secret 'valentine)
+|Wrong password|
+? (funcall secret-1 'get-secret 'valentine)
+DEEP-DARK
+</pre> 
+
+<p>
+Форма <code>ECASE</code> является исчерпывающим изложением дела. 
+В нашей программе операция <code>OPERATION</code> должна быть найдена 
+в одном из предложений <code>ECASE</code>, иначе Lisp будет сигнализировать 
+об ошибке.
+
+<p>
+Форма <code>#'(LAMBDA ...</code> создает замыкание над свободными переменными 
+<code>PASSWORD</code> and <code>SECRET</code>. Каждый раз, когда мы вычисляем 
+<code>MAKE-SECRET-KEEPER</code>, самая внешняя форма <code>LET</code> создает 
+новые привязки для этих переменных; замыкание затем создается и возвращается в 
+результате функции <code>MAKE-SECRET-KEEPER</code>.
+
+<blockquote>
+В пред-ANSI Common Lisp  <code>LAMBDA</code> - это просто символ, 
+который распознается  как маркер для определения лямбда-выражения. 
+Сама по себе  <code>LAMBDA</code> не создает  замыкания; 
+это функция макроса чтения <code>#'</code> (который расширяется 
+в форму  <code>(FUNCTION ...</code> form).
+
+<p>
+ANSI Common Lisp определяет макрос <code>LAMBDA</code>, который расширяется 
+в <code>(FUNCTION (LAMBDA ...</code>, который вы можете использовать вместо 
+<code>#'(LAMBDA</code> везде, где он появляется в этом примере. Для обратной 
+совместимости с реализациями Пред-ANSI Common Lisp вы всегда должны писать 
+<code>#'(LAMBDA ...</code> -- избыточная <code>(FUNCTION ...</code> в 
+расширении не причинити никакого вреда.
+</blockquote> 
+
+<p>
+В каждом предложении <code>ECASE</code> мы извлекаем аргументы из 
+остатков(<code>&amp;REST</code>) переменной <code>ARGUMENTS</code>
+и затем выполняем точно такую же обработку, как и в нашем предыдущем 
+примере.
+
+<p>
+После того, как мы вызвали <code>MAKE-SECRET-KEEPER</code> и сохранили 
+результирующее замыкание, мы можем <code>FUNCALL</code>(выполнить) замыкание, 
+передавая символ операции и любые дополнительные аргументы. Обратите внимание, 
+что каждое замыкание, созданное <code>MAKE-SECRET-KEEPER</code>, полностью 
+независимо; поэтому мы достигли цели хранить множество секретов
+
+<p>
+Функции, возвращающие замыкания, отличаются от макросов. Макрос - это функция, 
+которая создает форму; затем форма вычисляется для получения результата. 
+Функция, возвращающая замыкание, просто возвращает объект: замыкание. 
+Возвращаемое замыкание не вычисляется автоматически Lisp вычислителем.
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter14.html">Chapter 14</a> | Chapter 15 | <a href="chapter16.html">Chapter 16</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

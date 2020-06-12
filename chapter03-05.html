@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 3, Lesson 5</title> 
+</head> 
+
+<body bgcolor="white" text="black"><h1>Глава 3 - Основы Лисп в 12 уроках</h1> 
+
+<h2><A NAME="lesson-5">Урок 5 - Наименование и Идентичность</A></h2> 
+
+<h3>Символ - это всего лишь имя</h3> 
+
+<P>Символ - это просто имя. Он может сам представлять себя. 
+Это позволяет легко писать определенные виды программ на Лиспе. 
+Например, если вы хотите, чтобы ваша программа представляла отношения 
+в вашем семейном древе, вы можете создать базу данных, которая хранит 
+такие отношения:</P>
+
+<PRE WIDTH=80>(father John Barry)
+(son John Harold)
+(father John Susan)
+(mother Edith Barry)
+(mother Edith Susan)
+...</PRE>
+
+<P>
+Каждое отношение - это список. <CODE>(father John Barry)</CODE> означает, 
+что Джон-это отец Барри. Каждый элемент каждого списка в нашей базе данных 
+является символом. Ваша программа Lisp может сравнить символы в этой базе данных, 
+чтобы определить, например, что Гарольд-дедушка Барри. Если бы вы попытались 
+написать подобную программу на другом языке-языке без символов, - вам пришлось 
+бы решить, как представлять имена членов семьи и отношения, а затем создать 
+код для выполнения всех необходимых операций-чтения, печати, сравнения, присваивания
+и т. д. Все это встроено в Lisp, потому что символы-это тип данных, отличный от объектов, для которых они могут использоваться в качестве имен.
+</P>
+
+<h3>Символ- всегда уникален</h3> 
+
+<P>
+Каждый раз, когда ваша программа использует символ, этот символ 
+<EM>идентичен</EM> любому другому символу с тем же именем. 
+Вы можете использовать тест <CODE>EQ</CODE> для сравнения символов:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq 'a 'a)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq 'david 'a)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq 'David 'DAVID)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq zzz 'sleeper)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> SLEEPER<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq zzz 'sleeper)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T</PRE>
+
+<P>
+Обратите внимание, что не имеет значения, используете ли вы прописные или 
+строчные буквы в названиях ваших символов. Внутренне Lisp переводит каждый 
+буквенный символ в имени символа в общий регистр - обычно верхний, но вы 
+можете управлять этим, установив флаг в программе чтения Lisp.
+</P>
+
+<BLOCKQUOTE>
+Когда вы узнаете о пакетах(package) в <A HREF="chapter03-10.html">Уроке 10</A>
+(Также смотрите <A HREF="chapter31.html">Главу 31</A>), вы можете создать 
+имена символов, которые не идентичны при одинаковом написании. 
+На данный момент все, что вам нужно знать, - это то, что любой символ, 
+написанный с двоеточием <CODE>:</CODE>, получает особую обработку.
+</BLOCKQUOTE>
+
+<h3>Символ может именовать значение</h3> 
+
+<P>
+Хотя возможность для символа Lisp представлять самого себя иногда и полезна, более
+распространенным является использование символа для имени значения. Именно такую роль
+играют имена переменных и функций в других языках программирования. Символ Lisp 
+чаще всего именует значение или, при использовании в качестве первого элемента формы вызова функции, функцию.
+</P>
+
+<P>
+Что необычно в Lisp, так это то, что символ может иметь значение как функция и 
+переменная одновременно:</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq first 'number-one)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NUMBER-ONE<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (first (list 3 2 1))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> 3<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> first<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NUMBER-ONE</PRE>
+
+<P>
+Обратите внимание, как <CODE>FIRST</CODE> используется в качестве переменной 
+в первом и последнем случае, а также в качестве функции (предопределенной 
+Lisp, в данном примере) во втором случае. Lisp решает, какое из этих значений
+использовать, основываясь на том, где появляется символ. Когда правило выполнения
+требует значения, Lisp ищет переменное значение символа. Когда вызывается функция, 
+Lisp ищет функцию символа.
+</P>
+
+<P>
+Символ может иметь и другие значения, помимо тех, которые он имеет в качестве 
+переменной или функции. Символ также может иметь значения для своей документации,
+списка свойств и печатного имени. Документация к символу - это текст, который 
+вы создаете для описания символа. Вы можете создать его с помощью формы 
+<CODE>DOCUMENTATION</CODE> или как часть определенных форм, которые 
+определяют значение символа. Поскольку символ может иметь несколько значений, 
+вы можете назначить документацию каждому из нескольких значений, например как 
+функции и как переменной.
+</P>
+
+<P>
+Список свойств подобен небольшой базе данных с одним ключом на запись. 
+Мы рассмотрим это использование символов в <A HREF="chapter03-10.html">Уроке 10</A>.
+</P>
+
+<P>
+Печатное имя - это то, что Lisp использует для печати символа. Обычно вы 
+не хотите его менять; если вы это сделаете, Lisp напечатает символ с другим 
+именем, чем его первоначальное использование при чтении символа, что создаст 
+другой символ при последующем чтении Lisp.
+</P>
+
+<h3>Значение может иметь несколько имен</h3> 
+
+<P>
+Значение может иметь несколько имен. То есть более чем один символ может 
+иметь общее значение. В других языках есть указатели, которые работают 
+таким образом. Lisp не предоставляет указатели программисту, но имеет 
+общие объекты. Объект считается идентичным, когда он проходит тест <CODE>EQ</CODE>. Рассмотрим следующее:
+</P>
+
+<PRE WIDTH=80><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq L1 (list 'a 'b 'c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (A B C)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq L2 L1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (A B C)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq L1 L2)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> T<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (setq L3 (list 'a 'b 'c))<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> (A B C)<br><br><IMG SRC="gifs/circle-dot.gif" ALT="?" ALIGN="BOTTOM"> (eq L3 L1)<br><IMG SRC="gifs/right-arrow.gif" ALT="-&gt;" ALIGN="BOTTOM"> NIL</PRE>
+
+<P>Здесь <CODE>L1</CODE> эквивалентен <CODE>EQ</CODE> - <CODE>L2</CODE>,
+потому что <CODE>L1</CODE> именует <EM>тоже самое значение</EM>, что и
+<CODE>L2</CODE>.  Другими словами, значение, созданное формой
+<CODE>(LIST 'A 'B 'C)</CODE> имеет два имени: <CODE>L1</CODE> и 
+<CODE>L2</CODE>.  Форма <CODE>(SETQ L2 L1)</CODE> гласит: 
+"Пусть значение <CODE>L2</CODE> имеет значение <CODE>L1</CODE>." 
+Не копию значения, а само значение.  Таким образом 
+<CODE>L1</CODE> и <CODE>L2</CODE> <EM>разделяют</EM> одно и тоже значение --  список <CODE>(A B C)</CODE>, которое сначала было присвоено как значение 
+<CODE>L1</CODE>.</P>
+
+<P><CODE>L3</CODE> также содержит список <CODE>(A B C)</CODE> 
+в качестве значения, но это <EM>другой</EM> список, отличный от того который
+разделяют <CODE>L1</CODE> и <CODE>L2</CODE>.  Даже если значение
+<CODE>L3</CODE> <EM>выглядит</EM> так же, как значение <CODE>L1</CODE>
+и <CODE>L2</CODE>, это другой список, потому что он был создан
+другой формой  <CODE>LIST</CODE>.  
+Так что <CODE>(EQ L3 L1)</CODE><IMG SRC="gifs/right-arrow.gif" 
+ALT="-&gt;" ALIGN="BOTTOM"><CODE>NIL</CODE>, потому что их значения,
+это разные списки, каждый из которых состоит из символов <CODE>A</CODE>, <CODE>B</CODE> и <CODE>C</CODE>.</P>
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter02.html">Chapter 2</a> | <A HREF="chapter03.html">Chapter 3, Introduction</A> | <A HREF="chapter03-04.html">Chapter 3, Lesson 4</A> | Chapter 3, Lesson 5 | <A HREF="chapter03-06.html">Chapter 3, Lesson 6</A> | <a href="chapter04.html">Chapter 4</a> | 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its 
+author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>

@@ -1,0 +1,332 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>Successful Lisp - Chapter 21</title>
+</head> 
+
+<body bgcolor="white" text="black">
+<h1>Глава 21 - Необычные трюки с аргументами функций и
+макросов</h1> 
+
+<P>
+Мы уже видели (в  <a href="chapter04.html">Главе 4</a>), как параметр
+ <code>&amp;OPTIONAL</code> может уменьшить количество аргументов, 
+которые вы должны предоставить для наиболее распространенных вызовов 
+функции. В этой главе мы рассмотрим дополнительные языковые функции, 
+которые позволяют объявлять именованные (ключевые слова) параметры 
+и предоставлять значения по умолчанию для неопределенных параметров. 
+Мы также рассмотрим структурированные списки аргументов, которые 
+позволяют сгруппировать связанные параметры для большей ясности.
+
+<h2>Ключевые слова позволяют именовать ваши параметры</h2>
+
+<p>
+Иногда вам хочется определить функцию (или макрос), которая отлично 
+работает с небольшим списком аргументов, но может быть расширена полезными - 
+и очевидными, я надеюсь, - способами,  путем добавления дополнительных аргументов. 
+Но вы бы предпочли не указывать <em>все</em> аргументы <em>постоянно</em>. 
+Мы уже видели аргументы  ключевые слова, используемые в 
+<a href="chapter13.html"> Главе 13</a> с функциями работающими с последовательности, 
+и в <a href="chapter19.html"> Главе 19</a> с функциями работающими с потоками.
+
+
+<p>
+Вы можете использовать аргументы ключевые слова для своих собственных 
+функций или макросов, добавив маркер <code>&amp;key</code> в лямбда-список. 
+Общая форма (также используемая для <code>DEFMACRO</code>)  является:
+
+<pre>
+(defun <i>name</i> (<i>req-arg</i> ... &amp;key <i>key-arg</i>)
+  ...)
+</pre> 
+
+<p>
+Все необходимые аргументы (<i>req-arg</i>) должны предшествовать 
+маркеру <code>&amp;KEY</code>. Имя переменной <i>key-arg</i>, на 
+которую вы будете ссылаться в определении вашей функции; то же 
+самое имя  <i>key-arg</i> в пакете ключевых слов (т. е. имеющее
+предшествующее двоеточие) используется в вызове в качестве префикса 
+для задания значения ключевого слова.
+
+<pre>
+? (defun keyword-sample-1 (a b c &amp;key d e f)
+    (list a b c d e f))
+KEYWORD-SAMPLE-1
+? (keyword-sample-1 1 2 3)
+(1 2 3 NIL NIL NIL)
+? (keyword-sample-1 1 2 3 :d 4)
+(1 2 3 4 NIL NIL)
+? (keyword-sample-1 1 2 3 :e 5)
+(1 2 3 NIL 5 NIL)
+? (keyword-sample-1 1 2 3 :f 6 :d 4 :e 5)
+(1 2 3 4 5 6)
+</pre> 
+
+<p>
+Из последнего примера вы заметите, что параметры ключевые слова могут быть 
+перечислены в любом порядке. Однако, как и в их объявлении лямбда-списка, 
+все ключевые параметры должны следовать после требуемых параметров.
+
+<h2>Значения по умолчанию, когда вы не хотите говорить</h2>
+
+<p>
+Любой параметр ключевое слово, который вы не указываете в вызове, 
+получает значение по умолчанию <code>NIL</code>. Вы можете изменить значение 
+по умолчанию, используя вариант объявления аргумента ключевого слова: вместо 
+простого имени аргумента укажите <code>(</code><i>name</i>
+<i>default</i><code>)</code>, например:
+
+<pre>
+? (defun keyword-sample-2 (a &amp;key (b 77) (c 88))
+    (list a b c))
+KEYWORD-SAMPLE-2
+? (keyword-sample-2 1)
+(1 77 88)
+? (keyword-sample-2 1 :c 3)
+(1 77 3)
+</pre> 
+
+<p>
+Вы также можете узнать, был ли указан параметр ключевое слово в вызове, 
+даже если он был указан с использованием значения по умолчанию. 
+Объявление аргумента ключевого слова выглядит следующим образом: 
+<code>(</code><i>name</i> <i>default</i> <i>arg-supplied-p</i><code>)</code>, 
+где <i>arg-supplied-p</i><code>)</code> - это имя переменной, которую 
+определение вашей функции считывает как <code>NIL</code> только в том 
+случае, если аргумент не указан в вызове.
+
+<pre>
+? (defun keyword-sample-3 (a &amp;key (b nil b-p) (c 53 c-p))
+    (list a b b-p c c-p))
+KEYWORD-SAMPLE-2
+? (keyword-sample-3 1)
+(1 NIL NIL 53 NIL)
+? (keyword-sample-3 1 :b 74)
+(1 74 T 53 NIL)
+? (keyword-sample-3 1 :b nil)
+(1 NIL T 53 NIL)
+? (keyword-sample-3 1 :c 9)
+(1 NIL NIL 9 T)
+</pre> 
+
+<p>
+Значения по умолчанию и поставляемая переменная также могут использоваться 
+с дополнительными(<code>&amp;OPTIONAL</code>) параметрами.
+
+
+<pre>
+? (defun optional-sample-1 (a &amp;optional (b nil b-p))
+    (list a b b-p))
+OPTIONAL-SAMPLE-1
+? (optional-sample-1 1)
+(1 NIL NIL)
+? (optional-sample-1 1 nil)
+(1 NIL T)
+? (optional-sample-1 1 2)
+(1 2 T)
+</pre> 
+
+<p>
+Когда вы определяете оба параметра  <code>&amp;OPTIONAL</code> и 
+<code>&amp;KEY</code>, вызов должен включать значения для всех необязательных 
+параметров, если он задает какие-либо параметры ключевые слова, как в 
+последнем примере выше. Посмотрите, что может произойти, если вы опустите 
+некоторые необязательные параметры:
+
+<pre>
+? (defun optional-keyword-sample-1 (a &amp;optional b c &amp;key d e)
+    (list a b c d e))
+OPTIONAL-KEYWORD-SAMPLE-1
+? (optional-keyword-sample-1 1)
+(1 NIL NIL NIL NIL)
+? (optional-keyword-sample-1 1 2)
+(1 2 NIL NIL NIL)
+? (optional-keyword-sample-1 1 2 3)
+(1 2 3 NIL NIL)
+? (optional-keyword-sample-1 1 2 3 :e 5)
+(1 2 3 NIL 5)
+</pre> 
+
+<p>
+Когда вы определяете оба аргумента <code>&amp;OPTIONAL</code> и <code>&amp;KEY</code>,
+вызов должен включать значения для всех необязательных параметров, если он задает 
+какие-либо параметры ключевые слова, как в последнем примере выше. Посмотрите, 
+что может произойти, если вы опустите некоторые необязательные параметры:
+
+<pre>
+? (defun optional-keyword-sample-2 (a &amp;optional b c d &amp;key e f)
+    (list a b c d e f))
+OPTIONAL-KEYWORD-SAMPLE-2
+? (optional-keyword-sample-2 1 2 :e 3)
+(1 2 :E 3 NIL NIL)
+</pre> 
+
+<blockquote>
+Несмотря на то, что функция Common Lisp (<code>READ-FROM-STRING</code>) 
+использует как необязательные, так и аргументы ключевые слова, <em>не</em> 
+делайте так при определении собственных функций или макросов..
+</blockquote> 
+
+<h2>Добавьте некоторую структуру в ваши макросы, разбирая аргументы</h2>
+
+<p>Деструктурирование/выборку параметров из структуры(<em>destructuring</em>) можно
+использовать для создания групп параметров макросов.
+
+<pre>
+? (defmacro destructuring-sample-1 ((a b) (c d))
+    `(list ',a ',b ',c ',d))
+DESTRUCTURING-SAMPLE-1
+? (destructuring-sample-1 (1 2) (3 4))
+(1 2 3 4)
+</pre> 
+
+<p>Вы можете использовать все обычные методы в каждой группе
+
+<pre>
+? (defmacro destructuring-sample-2 ((a &amp;key b) (c &amp;optional d))
+    `(list ',a ',b ',c ',d))
+DESTRUCTURING-SAMPLE-2
+? (destructuring-sample-2 (1) (3))
+(1 NIL 3 NIL)
+? (destructuring-sample-2 (1 :b 2) (3))
+(1 2 3 NIL)
+? (destructuring-sample-2 (1) (3 4))
+(1 NIL 3 4)
+</pre> 
+
+<p>И группировки могут быть даже вложенными.
+
+<pre>
+? (defmacro destructuring-sample-3 ((a &amp;key b) (c (d e) &amp;optional f))
+    `(list ',a ',b ',c ',d ',e ',f))
+DESTRUCTURING-SAMPLE-3
+? (destructuring-sample-3 (1) (3 (4 5)))
+(1 NIL 3 4 5 NIL)
+</pre> 
+
+<p>
+Деструктурирование/выбор значений из структуры обычно используется для 
+выделения группы аргументов или объявлений из форм тела в макросе. Вот 
+расширенный пример <code>WITH-PROCESSES</code>, который ожидает имя, 
+список имени переменной (pid) и количество процессов (num-processes), 
+а также список другого имени переменной (work-item) и список элементов 
+для обработки (work-queue). Все эти аргументы сгруппированы перед формами 
+тела.
+
+<pre>
+? (defmacro with-processes ((name 
+                             (pid num-processes)
+                             (work-item work-queue)) &amp;body body)
+    (let ((process-fn (gensym))
+          (items (gensym))
+          (items-lock (gensym)))
+      `(let ((,items (copy-list ,work-queue))
+             (,items-lock (make-lock)))
+         (flet ((,process-fn (,pid)
+                  (let ((,work-item nil))
+                    (loop
+                      (with-lock-grabbed (,items-lock)
+                        (setq ,work-item (pop ,items)))
+                      (when (null ,work-item)
+                        (return))
+                      <i>;;(format t "~&amp;running id ~D~%" ,pid)</i> 
+                      ,@body))))
+           (dotimes (i ,num-processes)
+             <i>;;(format t "~&amp;creating id ~D~%" ,id)</i> 
+             (process-run-function
+              (format nil "~A-~D" ,name i)
+              #',process-fn
+              i))))))
+WITH-PROCESSES
+</pre> 
+
+<p>
+Процессы не являются частью стандарта ANSI Common Lisp, но присутствуют 
+почти в каждой реализации. (Мы еще вернемся к процессам в 
+<a href="chapter32.html">Главе 32</a> вместе с некоторыми другими 
+распространенными языковыми расширениями.) Код, показанный выше, работает 
+с Macintosh Common Lisp, чей интерфейс процесса очень похож на тот, что был 
+найден на машинах Symbolics Lisp прошлых дней.
+
+<p>
+Я опишу несколько ключевых частей расширителя макросов на случай, 
+если вы хотите выяснить, что происходит; если вы предпочитаете просто 
+посмотреть, как вызывается макрос, вы можете пропустить остальную часть этого 
+абзаца. Форма <code>FLET</code> определяет функцию. В этом случае функция, 
+определенная <code>FLET</code>, будет использоваться для выполнения фактической 
+работы в процессе Lisp - захвате блокировки в рабочей очереди, удаления элемента,
+освобождении блокировки, а затем обработке элемента с помощью форм тела. 
+Функция <code>PROCESS-RUN-FUNCTION</code> создает процесс Lisp с заданным именем
+(генерируемым формой <code>FORMAT</code>) и функцией для выполнения. Макрос 
+<code>WITH-PROCESSES</code> создает <code>NUM-PROCESSES</code> Lisp-процессов
+с именами (named <i>name</i>-<i>#</i>) и внутри каждого процесса выполняет формы
+<code>BODY</code> с <code>PID</code>, привязанным к номеру процесса, и 
+<code>WORK-ITEM</code>, привязанным к некоторому элементу из <code>WORK-QUEUE</code>.
+Процессы завершаются сами по себе, как только рабочая очередь будет израсходована.
+
+<p>
+Вот пример того, как мы вызываем <code>WITH-PROCESSES</code>. Параметры - 
+это <code>"Test"</code> (используется для создания имен процессов), 
+<code>(id 3)</code> (переменная, привязанная к идентификатору процесса внутри 
+процесса, и количество процессов для создания) и 
+<code>(item '(1 2 ... 15 16)</code> (переменная, привязанная к отдельному 
+рабочему элементу в рамках процесса, и список элементов, потребляемых процессами). 
+Формы <code>FORMAT</code> и <code>SLEEP</code> содержат тело процессов и последний
+аргумент для вызова макроса <code>WITH-PROCESSES</code>.
+
+<pre>
+? (with-processes ("Test"
+                   (id 3)
+                   (item '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)))
+    (format t "~&amp;id ~D item ~A~%" id item)
+    (sleep (random 1.0)))
+NIL
+id 0 item 1
+id 1 item 2
+id 2 item 3
+id 1 item 4
+id 1 item 5
+id 0 item 6
+id 2 item 7
+id 0 item 8
+id 2 item 9
+id 1 item 10
+id 2 item 11
+id 0 item 12
+id 0 item 13
+id 1 item 14
+id 2 item 15
+id 0 item 16
+</pre> 
+
+<p>
+Форма возвращает NIL почти сразу, но созданные процессы запускаются в течение 
+некоторого времени, чтобы произвести следующий вывод. Номера "item" следуют 
+упорядоченной последовательности, поскольку они потребляются из рабочей очереди, 
+но номера "id" варьируются в зависимости от того, какой процесс фактически 
+использовал/потребил конкретный элемент.
+
+<p>
+Деструктурирование-это полезный инструмент для макросов, но вы не 
+можете использовать его в лямбда-списке функции. Однако вы можете 
+деструктурировать список из функции с помощью <code>DESTRUCTURING-BIND</code>.
+
+<pre>
+? (destructuring-bind ((a &amp;key b) (c (d e) &amp;optional f))
+                      '((1 :b 2) (3 (4 5) 6))
+    (list a b c d e f))
+(1 2 3 4 5 6)
+</pre> 
+
+<hr>
+<div align="center">
+<a href="contents.html">Contents</a> | <a href="cover.html">Cover</a> <br> 
+<a href="chapter20.html">Chapter 20</a> | Chapter 21 | <a href="chapter22.html">Chapter 22</a> 
+</div>
+<hr>
+<address>
+Copyright &copy; 1995-2001, David B. Lamkins<br>
+All Rights Reserved Worldwide<br>
+<br>
+This book may not be reproduced without the written consent of its author.  Online distribution is restricted to the author's site.
+</address> 
+</body> </html>
